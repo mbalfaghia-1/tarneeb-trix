@@ -1,0 +1,15 @@
+{
+  "name": "tarneeb-trix",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Tarneeb, Trix & Trix Complex — card game (web + mobile, AI + online)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspace @tarneeb/engine",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

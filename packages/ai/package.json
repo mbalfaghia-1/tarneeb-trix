@@ -1,0 +1,26 @@
+{
+  "name": "@tarneeb/ai",
+  "version": "0.0.0",
+  "description": "Rule-based bots for Tarneeb (starter; upgradeable to the full B1/T1-T11/D1-D2 playbook)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tarneeb/engine": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
