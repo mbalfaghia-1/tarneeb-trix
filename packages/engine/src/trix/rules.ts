@@ -100,6 +100,8 @@ export interface DealTally {
   readonly finishOrder: readonly Seat[];
   /** Cards that were revealed and doubled (K♥ / Queens). Defaults to none. */
   readonly doubled?: readonly { readonly card: Card; readonly by: Seat }[];
+  /** Leader of the trick each doubled card was played in (for forced-vs-natural). */
+  readonly doubledLeaders?: readonly { readonly card: Card; readonly leader: Seat }[];
 }
 
 const SHEDDING_POINTS = [200, 150, 100, 50] as const;
@@ -110,9 +112,46 @@ function doublerOf(tally: DealTally, suit: Card['suit'], rank: Card['rank']): Se
   return d ? d.by : null;
 }
 
+/** Leader of the trick that captured this doubled card, or null if unknown. */
+function leaderOf(tally: DealTally, suit: Card['suit'], rank: Card['rank']): Seat | null {
+  const l = tally.doubledLeaders?.find((x) => x.card.suit === suit && x.card.rank === rank);
+  return l ? l.leader : null;
+}
+
+/**
+ * Score a doubled penalty card the DOUBLER ended up capturing itself. Forced out by
+ * another seat (someone else led its suit) → doubled penalty to the doubler and the
+ * reward to the forcer. Taken naturally (the doubler led that trick, sweeping) → just
+ * the single penalty, no reward.
+ */
+function scoreSelfCaughtDouble(
+  delta: Delta,
+  tally: DealTally,
+  suit: Card['suit'],
+  rank: Card['rank'],
+  taker: Seat,
+  single: number,
+  doubledPenalty: number,
+  reward: number,
+): void {
+  const leader = leaderOf(tally, suit, rank);
+  if (leader !== null && leader !== taker) {
+    delta[taker] += doubledPenalty; // forced out by another
+    delta[leader] += reward; // the forcer's bonus
+  } else {
+    delta[taker] += single; // natural capture (led it / swept)
+  }
+}
+
 type Delta = [number, number, number, number];
 
-/** K♥ penalty with doubling: caught by another → -150/+75; by the doubler → -75. */
+/**
+ * K♥ penalty with doubling:
+ *  - caught by another (doubler avoided it) → taker -150, doubler +75.
+ *  - doubler forced to catch its own (an opponent led it) → doubler -150, forcer +75.
+ *  - doubler caught its own naturally (led it while sweeping) → -75.
+ *  - undoubled → -75.
+ */
 function applyKingOfHearts(delta: Delta, tally: DealTally): void {
   const taker = seatThatCaptured(tally.captured, (c) => c.suit === 'H' && c.rank === 13);
   if (taker === null) return;
@@ -120,12 +159,17 @@ function applyKingOfHearts(delta: Delta, tally: DealTally): void {
   if (by !== null && by !== taker) {
     delta[taker] += -150;
     delta[by] += 75;
+  } else if (by !== null) {
+    scoreSelfCaughtDouble(delta, tally, 'H', 13, taker, -75, -150, 75);
   } else {
     delta[taker] += -75;
   }
 }
 
-/** Each queen with doubling: caught by another → -50/+25; otherwise -25. */
+/**
+ * Each queen with doubling: caught by another → -50/+25; doubler forced to catch its
+ * own (opponent led) → -50 with +25 to the forcer; caught naturally / undoubled → -25.
+ */
 function applyQueens(delta: Delta, tally: DealTally): void {
   for (const suit of SUITS_ALL) {
     const taker = seatThatCaptured(tally.captured, (c) => c.suit === suit && c.rank === 12);
@@ -134,6 +178,8 @@ function applyQueens(delta: Delta, tally: DealTally): void {
     if (by !== null && by !== taker) {
       delta[taker] += -50;
       delta[by] += 25;
+    } else if (by !== null) {
+      scoreSelfCaughtDouble(delta, tally, suit, 12, taker, -25, -50, 25);
     } else {
       delta[taker] += -25;
     }

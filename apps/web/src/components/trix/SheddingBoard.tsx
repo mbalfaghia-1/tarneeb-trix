@@ -20,7 +20,7 @@ export function SheddingBoard({ state }: { state: TrixState }) {
             {r ? (
               rangeCards(suit, r.low, r.high).map((card) => (
                 <div className="shed-card" key={card.rank}>
-                  <CardView card={card} size="md" />
+                  <CardView card={card} size="lg" />
                 </div>
               ))
             ) : (

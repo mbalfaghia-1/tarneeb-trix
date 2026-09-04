@@ -178,8 +178,11 @@ function chooseContract(state: TrixState, seat: Seat, contract: TrixContract): T
       turn: state.king,
       layout: emptyLayout(),
       finishOrder: [],
-      // Exposing the 2s is a Trix Complex rule only — in regular Trix they stay hidden.
-      exposedTwos: state.mode === 'complex' ? computeExposedTwos(state.hands) : [],
+      // Exposing the 2s is a Trix Complex PARTNERSHIP rule: partners lead each other's
+      // suits so a stuck 2 can be played. Playing alone there's no partner to help, so
+      // the 2s stay hidden (as in regular Trix).
+      exposedTwos:
+        state.mode === 'complex' && state.partnership ? computeExposedTwos(state.hands) : [],
     };
   }
 
@@ -268,19 +271,36 @@ function playAvoidance(state: TrixState, seat: Seat, card: Card): TrixState {
   const tricksTaken = state.tricksTaken.map((n, i) => (i === winner ? n + 1 : n));
   const completed = tricksTaken.reduce((a, b) => a + b, 0);
 
+  // Record the leader of this trick for any doubled card it contains (for scoring the
+  // forced-vs-natural distinction). The leader is whoever led the trick.
+  const trickLeader = state.leader ?? currentTrick[0]!.seat;
+  const doubledHere = currentTrick
+    .filter((pc) => state.doubled.some((d) => cardsEqual(d.card, pc.card)))
+    .map((pc) => ({ card: pc.card, leader: trickLeader }));
+  const doubledLeaders = doubledHere.length
+    ? [...(state.doubledLeaders ?? []), ...doubledHere]
+    : state.doubledLeaders;
+
   const next: TrixState = {
     ...state,
     hands,
     captured,
     tricksTaken,
     voids,
+    doubledLeaders,
     currentTrick: [],
     leader: winner,
     turn: winner,
   };
 
   if (isAvoidanceDealOver(state.contract!, captured, completed)) {
-    return endDeal(next, { captured, tricksTaken, finishOrder: [], doubled: state.doubled });
+    return endDeal(next, {
+      captured,
+      tricksTaken,
+      finishOrder: [],
+      doubled: state.doubled,
+      doubledLeaders,
+    });
   }
   return next;
 }

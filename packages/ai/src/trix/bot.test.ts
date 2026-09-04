@@ -251,6 +251,15 @@ describe('trix avoidance: take harmless tricks, duck penalised ones', () => {
     expect(chosen(s)).toEqual(C(14, 'C'));
   });
 
+  it('queens: does NOT win with a high card when a later player holds the doubled led-suit queen', () => {
+    // Clubs led; we hold A♣/3♣ and a later player (seat 1) has doubled the Q♣. Winning
+    // with the A♣ lets them dump the Q♣ under it (we eat −50), so duck with the 3♣.
+    const s = trixPlay('queens', [C(14, 'C'), C(3, 'C')], [[3, C(5, 'C')]], {
+      doubled: [{ card: C(12, 'C'), by: 1 }],
+    });
+    expect(chosen(s)).toEqual(C(3, 'C'));
+  });
+
   it('queens: unloads high early on a queen-free trick, but ducks once a later player is known void', () => {
     // Not last, no voids revealed → take the trick and shed the A♠ (bold early play,
     // don't hoard high cards for the endgame).
@@ -500,6 +509,37 @@ describe('trix partnership coordination', () => {
     const base = trixPlay('diamonds', [C(8, 'C'), C(7, 'C'), C(6, 'H'), C(5, 'H')], [], {});
     const s = { ...base, captured: [otherClubs, [], [], []] } as TrixState;
     expect(chosen(s).suit).toBe('H');
+  });
+
+  it('does not lead a suit where SOME opponent is void and no non-void opponent can beat our low card', () => {
+    // Queens; seat 1 is void in diamonds and every diamond above our 8♦ is already gone,
+    // so nobody can beat it — leading it would win and rake in the void player's queen
+    // discards. Lead a club instead (a non-void opponent can still take that).
+    const capturedD = [9, 10, 11, 12, 13, 14].map((r) => C(r as Card['rank'], 'D'));
+    const base = trixPlay('queens', [C(8, 'D'), C(2, 'C'), C(3, 'C')], [], {
+      voids: [[], ['D'], [], []],
+    });
+    const s = { ...base, captured: [capturedD, [], [], []] } as unknown as TrixState;
+    expect(chosen(s).suit).not.toBe('D');
+  });
+
+  it('does not lead a suit whose queen WE doubled (want an opponent to lead it instead)', () => {
+    // Queens; we (seat 0) doubled the Q♦. On lead with low diamonds (shortest) and low
+    // clubs → open clubs, keeping diamonds for an opponent to lead so we can dump the Q♦.
+    const s = trixPlay('queens', [C(4, 'D'), C(3, 'D'), C(6, 'C'), C(5, 'C'), C(2, 'C')], [], {
+      doubled: [{ card: C(12, 'D'), by: 0 }],
+    });
+    expect(chosen(s).suit).not.toBe('D');
+  });
+
+  it('sheds the A♦ when an opponent doubled the Q♦ and a diamond is led', () => {
+    // Queens; the leader (seat 3) doubled the Q♦. A diamond is led and we hold A♦/2♦.
+    // Win the (queen-free, free) trick with the A♦ so we are not left holding it to
+    // catch the doubled Q♦ later.
+    const s = trixPlay('queens', [C(14, 'D'), C(2, 'D')], [[3, C(4, 'D')]], {
+      doubled: [{ card: C(12, 'D'), by: 3 }],
+    });
+    expect(chosen(s)).toEqual(C(14, 'D'));
   });
 
   it('does not lead a suit where our partner doubled a penalty (protects their cover)', () => {

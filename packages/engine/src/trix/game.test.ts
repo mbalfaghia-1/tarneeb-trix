@@ -109,9 +109,36 @@ describe('doubling', () => {
     expect(scoreTrixDeal('kingOfHearts', t)).toEqual([0, 75, 0, -150]);
   });
 
-  it('K♥ doubled but caught by the doubler → just -75', () => {
+  it('K♥ doubled but caught by the doubler (no leader info) → just -75', () => {
     const t = tally({ captured: piles([], [C(13, 'H')], [], []), doubled: [{ card: C(13, 'H'), by: 1 }] });
     expect(scoreTrixDeal('kingOfHearts', t)).toEqual([0, -75, 0, 0]);
+  });
+
+  it('K♥ doubled, doubler FORCED to catch its own (an opponent led it) → -150, +75 to the forcer', () => {
+    const t = tally({
+      captured: piles([], [C(13, 'H')], [], []),
+      doubled: [{ card: C(13, 'H'), by: 1 }],
+      doubledLeaders: [{ card: C(13, 'H'), leader: 3 }], // seat 3 led the hearts that forced it
+    });
+    expect(scoreTrixDeal('kingOfHearts', t)).toEqual([0, -150, 0, 75]);
+  });
+
+  it('K♥ doubled, doubler catches its own NATURALLY (it led that trick) → just -75', () => {
+    const t = tally({
+      captured: piles([], [C(13, 'H')], [], []),
+      doubled: [{ card: C(13, 'H'), by: 1 }],
+      doubledLeaders: [{ card: C(13, 'H'), leader: 1 }], // the doubler itself led the trick
+    });
+    expect(scoreTrixDeal('kingOfHearts', t)).toEqual([0, -75, 0, 0]);
+  });
+
+  it('a doubled queen forced out of its doubler → -50, +25 to the forcer', () => {
+    const t = tally({
+      captured: piles([], [C(12, 'S')], [], []),
+      doubled: [{ card: C(12, 'S'), by: 1 }],
+      doubledLeaders: [{ card: C(12, 'S'), leader: 0 }],
+    });
+    expect(scoreTrixDeal('queens', t)).toEqual([25, -50, 0, 0]);
   });
 
   it('a doubled queen caught by another is -50/+25; other queens stay -25', () => {
@@ -136,9 +163,9 @@ describe('doubling', () => {
 });
 
 describe('shedding: 2s exposure', () => {
-  it('reveals the 2s at shedding start (Complex only) when they span both teams', () => {
+  it('reveals the 2s at shedding start (Complex partnership) when they span both teams', () => {
     for (let seed = 1; seed <= 40; seed++) {
-      let s = createTrixGame({ seed, mode: 'complex' });
+      let s = createTrixGame({ seed, mode: 'complex', partnership: true });
       const holders = new Set<Seat>();
       for (const seat of [0, 1, 2, 3] as Seat[]) {
         for (const c of s.hands[seat]!) if (c.rank === 2) holders.add(seat);
@@ -155,9 +182,18 @@ describe('shedding: 2s exposure', () => {
     }
   });
 
+  it('never exposes the 2s when playing Complex ALONE (partnership-only rule)', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      let s = createTrixGame({ seed, mode: 'complex' }); // alone (no partnership)
+      s = applyTrixAction(s, { type: 'CHOOSE_CONTRACT', seat: s.king, contract: 'trix' });
+      expect(s.phase).toBe('shedding');
+      expect(s.exposedTwos.length).toBe(0);
+    }
+  });
+
   it('never exposes the 2s in regular Trix (Complex-only rule)', () => {
     for (let seed = 1; seed <= 20; seed++) {
-      let s = createTrixGame({ seed }); // regular mode
+      let s = createTrixGame({ seed, partnership: true }); // regular mode, even in partnership
       s = applyTrixAction(s, { type: 'CHOOSE_CONTRACT', seat: s.king, contract: 'trix' });
       expect(s.phase).toBe('shedding');
       expect(s.exposedTwos.length).toBe(0);

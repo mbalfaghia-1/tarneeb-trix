@@ -506,11 +506,11 @@ html, body, #root {
 .trix-finish { color: var(--accent); font-weight: 700; }
 
 /* Exposed 2s shown as small badges on the holder's seat. */
-.seat-twos { display: flex; gap: 3px; }
+.seat-twos { display: flex; gap: 4px; }
 .two-chip {
-  font-size: 12px; font-weight: 800; color: var(--text);
+  font-size: 16px; font-weight: 800; color: var(--text);
   background: var(--surface); border: 1px solid var(--accent);
-  border-radius: 8px; padding: 0 5px;
+  border-radius: 8px; padding: 1px 7px; line-height: 1.2;
   font-family: 'Segoe UI Symbol', 'Apple Symbols', sans-serif;
 }
 .two-chip.red { color: var(--card-red); }
@@ -519,11 +519,11 @@ html, body, #root {
   position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%);
   display: flex; flex-direction: column; gap: 8px; z-index: 12; max-width: 92%;
 }
-.shed-row { display: flex; align-items: center; min-height: 90px; justify-content: center; }
-.shed-card { margin-left: -30px; }
+.shed-row { display: flex; align-items: center; min-height: 106px; justify-content: center; }
+.shed-card { margin-left: -40px; }
 .shed-card:first-child { margin-left: 0; }
 .shed-empty {
-  width: 62px; height: 88px; border: 2px dashed var(--border); border-radius: 7px;
+  width: 74px; height: 104px; border: 2px dashed var(--border); border-radius: 7px;
   display: grid; place-items: center; font-size: 34px; color: var(--text-dim);
 }
 .shed-empty.red { color: var(--card-red); opacity: 0.7; }

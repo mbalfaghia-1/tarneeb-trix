@@ -248,6 +248,7 @@ function pickAvoidanceCard(state: TrixState): Card {
       if (winners.length > 0) return highest(winners);
       // fall through to ducking below rather than self-catching a penalty.
     }
+
     const losers = legal.filter((c) => c.rank < winTop);
     if (losers.length > 0) return highest(losers); // duck under, shedding our highest loser (a penalty here lands on the current winner — good)
 
@@ -371,13 +372,20 @@ function safeToTake(
       );
     case 'kingOfHearts':
       return lastToPlay || count.accountedFor(13, 'H'); // K♥ can't be added if it's ours/played
-    case 'queens':
-      // Take the trick to shed a high card unless a later player is KNOWN void in the
-      // led suit and could dump a queen on us. Early on (no revealed voids) this lets
-      // us unload aggressively; it tightens automatically as voids come to light.
-      return (
-        lastToPlay || !laterVoidCouldDumpQueen(state, count, state.turn, state.currentTrick[0]!.card.suit)
+    case 'queens': {
+      if (lastToPlay) return true;
+      const led = state.currentTrick[0]!.card.suit;
+      // A later player who DOUBLED the led-suit queen will dump it UNDER our winning
+      // card (they pocket +25, we eat −50), so never win the trick into that.
+      const doubledQueenBehind = state.doubled.some(
+        (d) => d.card.rank === 12 && d.card.suit === led && laterPlayers(state, state.turn).includes(d.by),
       );
+      if (doubledQueenBehind) return false;
+      // Otherwise take the trick to shed a high card, unless a later player is KNOWN
+      // void in the led suit and could discard a queen on us. Early on (no revealed
+      // voids) this stays aggressive; it tightens automatically as voids come to light.
+      return !laterVoidCouldDumpQueen(state, count, state.turn, led);
+    }
     default:
       return false;
   }
@@ -493,6 +501,21 @@ function leadAvoidance(
     // Or every opponent has shown void in it (discarded off-suit on an earlier lead).
     (opponents.length > 0 && opponents.every((o) => (state.voids[o] ?? []).includes(suit)));
 
+  // Is leading this low card safe? Once SOME opponent is void in its suit, leading it
+  // risks them discarding a penalty onto our trick — safe only if a NON-void opponent
+  // can still beat our card and take it instead (the dumps then land on them, not us).
+  const safeLowLead = (c: Card): boolean => {
+    const suit = c.suit;
+    if (count.outstanding[suit] === 0) return false; // nobody else has it → we win it
+    const someOppVoid = opponents.some((o) => (state.voids[o] ?? []).includes(suit));
+    if (!someOppVoid) return true; // no void opponent → an ordinary losing lead
+    return opponents.some((o) => {
+      if ((state.voids[o] ?? []).includes(suit)) return false; // a void opponent can't take it
+      for (let r = c.rank + 1; r <= 14; r++) if (couldHold(state, count, o, r, suit)) return true;
+      return false;
+    });
+  };
+
   // Endplay: an opponent's DOUBLED penalty that is the ONLY outstanding card of its
   // suit means they hold nothing else in it — so the instant we lead that suit they are
   // FORCED to win with it and catch their own doubled card, plus whatever we throw in.
@@ -537,37 +560,40 @@ function leadAvoidance(
   const khLive = (contract === 'kingOfHearts' || contract === 'complex') && !count.accountedFor(13, 'H');
   const isDanger = (c: Card): boolean => khLive && c.suit === 'H' && c.rank === 14;
 
-  // Don't lead a suit where our PARTNER has doubled a penalty (K♥ / a Queen): they
-  // doubled because they hold cover (low cards) to duck it — leading that suit burns
-  // their cover and pushes them toward catching their own doubled card.
+  // Avoid leading certain suits' cover:
+  //  - OUR OWN doubled penalty (K♥ / a Queen): we want an OPPONENT to lead it so we can
+  //    dump the doubled card onto their trick — leading it ourselves develops the suit
+  //    against us and risks catching our own doubled card.
+  //  - our PARTNER's doubled penalty: leading it burns the low cards protecting theirs.
   const partner = (((seat + 2) % 4) as Seat);
   const protect = new Set<Suit>();
-  if (state.partnership) {
-    for (const d of state.doubled) if (d.by === partner) protect.add(d.card.suit);
+  for (const d of state.doubled) {
+    if (d.by === seat) protect.add(d.card.suit);
+    else if (state.partnership && d.by === partner) protect.add(d.card.suit);
   }
 
   let candidates = hand.filter((c) => !isPenalty(c) && !isDanger(c));
   if (candidates.length === 0) candidates = [...hand]; // only penalties left — forced
 
-  // Lead a genuinely LOW card so we lose the trick — winning is bad (it collects
-  // penalties and lets opponents dump on us). Priority among low cards: first a suit
-  // an opponent can still follow (so the trick can actually go to them — never lead
-  // into a suit they're all void in), then outside a partner's doubled penalty (don't
-  // burn their cover), then head toward a void via our shortest suit. Never lead a
-  // high singleton.
-  // Lead a low card in a suit an opponent can still FOLLOW, so the trick goes to
-  // them and we lose the lead. Prefer suits outside a partner's doubled penalty, then
-  // our shortest (heads toward a void). Never lead a high singleton.
+  // Lead a genuinely LOW card so we LOSE the trick to an opponent (winning collects
+  // penalties, and once anyone is void they dump on us). Only lead a low card a non-void
+  // opponent can still take; among those prefer suits outside a partner's doubled penalty,
+  // then head toward a void via our shortest suit. Never lead a high singleton.
   const lowCards = candidates.filter((c) => c.rank <= 9);
-  const losable = lowCards.filter((c) => !allOppsVoid(c.suit));
-  if (losable.length > 0) {
+  // Best: a low card a NON-VOID opponent can beat and take (dumps land on them). If none,
+  // fall back to any suit opponents can at least FOLLOW (one may dump, but not everyone),
+  // which is still far better than a suit they are ALL void in (everyone dumps on us).
+  const losable = lowCards.filter(safeLowLead);
+  const followable = lowCards.filter((c) => !allOppsVoid(c.suit));
+  const pool0 = losable.length > 0 ? losable : followable;
+  if (pool0.length > 0) {
     // Prefer a suit where we hold NO high honour (A/K): leading the low card of an
     // A/K suit throws away the cover that keeps that honour from being forced to win a
     // later trick and catch penalties. Keep those suits frozen; broach a "soft" one.
     const suitTop = (suit: Suit) =>
       Math.max(...hand.filter((c) => c.suit === suit).map((c) => c.rank));
-    const soft = losable.filter((c) => suitTop(c.suit) < 13);
-    const tier = soft.length > 0 ? soft : losable;
+    const soft = pool0.filter((c) => suitTop(c.suit) < 13);
+    const tier = soft.length > 0 ? soft : pool0;
     const unprotected = tier.filter((c) => !protect.has(c.suit));
     const pool = unprotected.length > 0 ? unprotected : tier;
     const suit = shortestSuit(pool);

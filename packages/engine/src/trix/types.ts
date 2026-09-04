@@ -90,6 +90,10 @@ export interface TrixState {
   // doubling (King of Hearts / Queens contracts)
   readonly doublePending: readonly Seat[]; // eligible holders still to decide
   readonly doubled: readonly DoubledCard[];
+  /** Leader of the trick in which each doubled card was played — lets scoring tell a
+   *  FORCED capture (an opponent led the suit) from a NATURAL one (the doubler led it
+   *  while sweeping). Optional; absent is treated as natural. */
+  readonly doubledLeaders?: readonly { readonly card: Card; readonly leader: Seat }[];
 
   // shedding
   readonly layout: SheddingLayout;
