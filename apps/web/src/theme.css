@@ -107,7 +107,9 @@ html, body, #root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  /* Clear the status bar / notch when installed full-screen on a phone. */
+  padding: calc(8px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) 8px
+    calc(16px + env(safe-area-inset-left, 0px));
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   z-index: 30;
@@ -276,7 +278,7 @@ html, body, #root {
 
 /* ---- hand dock ---- */
 .hand-dock {
-  position: absolute; bottom: 8px; left: 0; right: 0;
+  position: absolute; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); left: 0; right: 0;
   display: flex; justify-content: center; z-index: 18;
 }
 /* Cards always read left-to-right, even when the UI is Arabic/RTL. */
