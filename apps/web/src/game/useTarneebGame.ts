@@ -46,6 +46,17 @@ function botDelayMs(s: TarneebState): number {
   return s.phase === 'playing' ? 650 : 550;
 }
 
+/** Play out every remaining trick with the bot brain until the hand is scored. Used
+ *  to fast-forward a claim (human or bot) once the outcome is no longer in doubt. */
+function fastForwardHand(s: TarneebState): TarneebState {
+  let cur = s;
+  let guard = 0;
+  while (cur.phase === 'playing' && guard++ < 200) {
+    cur = applyAction(cur, chooseTarneebAction(cur));
+  }
+  return cur;
+}
+
 export interface TarneebGame {
   state: TarneebState;
   humanSeat: Seat;
@@ -101,6 +112,9 @@ export function useTarneebGame(): TarneebGame {
     timer.current = setTimeout(() => {
       setState((s) => {
         if (s.phase === 'game-over' || s.phase === 'hand-over' || isHumanDecision(s)) return s;
+        // If the bot on lead provably wins every remaining trick, claim it: fast-forward
+        // the rest of the hand in one step instead of plodding through each trick.
+        if (canClaimRemaining(s, s.turn)) return fastForwardHand(s);
         return applyAction(s, chooseTarneebAction(s));
       });
     }, botDelayMs(state));
@@ -180,15 +194,9 @@ export function useTarneebGame(): TarneebGame {
   // rest of the hand (auto-play all seats) to the result in one step.
   const claim = useCallback(() => {
     setReviewTrick(null);
-    setState((s) => {
-      if (s.phase !== 'playing' || !canClaimRemaining(s, HUMAN_SEAT)) return s;
-      let cur = s;
-      let guard = 0;
-      while (cur.phase === 'playing' && guard++ < 200) {
-        cur = applyAction(cur, chooseTarneebAction(cur));
-      }
-      return cur;
-    });
+    setState((s) =>
+      s.phase === 'playing' && canClaimRemaining(s, HUMAN_SEAT) ? fastForwardHand(s) : s,
+    );
   }, []);
 
   const canClaim = awaitingHuman && canClaimRemaining(state, HUMAN_SEAT);
