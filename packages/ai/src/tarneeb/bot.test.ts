@@ -163,14 +163,33 @@ describe('play tactics', () => {
     expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(14, 'H'));
   });
 
-  it('T3: third hand ducks when it cannot secure (saves the honour)', () => {
-    // Same, but we hold only Q♥ (the K♥ is still out) → duck with the 5, keep the Q.
+  it('T3: third hand plays HIGH to contest when an opponent is winning', () => {
+    // Partner led 3♥, an opponent is winning with 9♥. We sit third with Q♥,5♥ and a
+    // later opponent could hold a higher heart. Ducking would simply concede the
+    // trick, so we contest with the Q — it wins whenever the ace/king isn't behind.
     const state = playState({
       turn: 0,
       trump: 'S',
       hands: [[C(12, 'H'), C(5, 'H')], [], [], []],
       leader: 2,
       currentTrick: playedCards([2, C(3, 'H')], [3, C(9, 'H')]),
+    });
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(12, 'H'));
+  });
+
+  it('T3: third hand still ducks when a later opponent can RUFF (no card can win)', () => {
+    // Partner led 3♥; opponent winning 9♥. Seat 1 (the last to play) is void in hearts
+    // and holds trumps → it will ruff, so no heart of ours can win. Keep the Q, duck.
+    const state = playState({
+      turn: 0,
+      trump: 'S',
+      hands: [[C(12, 'H'), C(5, 'H')], [], [], []],
+      leader: 2,
+      currentTrick: playedCards([2, C(3, 'H')], [3, C(9, 'H')]),
+      // Seat 1 showed void in hearts earlier (ruffed a heart) and still holds trumps.
+      tricks: [
+        { leader: 2, winner: 1, cards: playedCards([2, C(14, 'H')], [3, C(6, 'H')], [0, C(7, 'H')], [1, C(2, 'S')]) },
+      ],
     });
     expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(5, 'H'));
   });
@@ -223,6 +242,35 @@ describe('play tactics', () => {
     });
     const action = chooseTarneebAction(state) as { card: Card };
     expect(action.card).toEqual(C(13, 'S'));
+  });
+
+  it('second hand takes an opponent\'s KING lead with the ace (captures the top honour)', () => {
+    // An opponent (declarer, seat 3) leads the K♣. We sit second with A♣ + a low club.
+    // The king is the highest club still out, so we take it now with the ace rather
+    // than ducking and later wasting the ace on a smaller card.
+    const state = playState({
+      turn: 0,
+      trump: 'S',
+      declarer: 3,
+      hands: [[C(14, 'C'), C(4, 'C'), C(2, 'D')], [], [], []],
+      leader: 3,
+      currentTrick: playedCards([3, C(13, 'C')]),
+    });
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(14, 'C'));
+  });
+
+  it('second hand ducks a QUEEN lead when a higher honour (the king) is still out', () => {
+    // Opponent leads Q♣; we hold A♣ + low, but the K♣ is still out. Duck and keep the
+    // ace to capture the KING later, rather than spending it on the queen now.
+    const state = playState({
+      turn: 0,
+      trump: 'S',
+      declarer: 3,
+      hands: [[C(14, 'C'), C(4, 'C'), C(2, 'D')], [], [], []],
+      leader: 3,
+      currentTrick: playedCards([3, C(12, 'C')]),
+    });
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(4, 'C'));
   });
 
   it('T1: as declarer on lead, draws trumps with the master', () => {
@@ -304,6 +352,101 @@ describe('declarer / partner coordination', () => {
       tricks: [],
     });
     expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(4, 'S'));
+  });
+});
+
+describe('declarer trump management', () => {
+  // Two rounds of trumps already drawn by the declarer (seat 0), all spades so the
+  // side suits are untouched. Declarer still holds Q♠,4♠ + the master A♥ to cash.
+  const drewTwice = {
+    turn: 0 as Seat,
+    declarer: 0 as Seat,
+    trump: 'S' as Suit,
+    hands: [[C(12, 'S'), C(4, 'S'), C(14, 'H'), C(3, 'C')], [], [], []] as Card[][],
+    currentTrick: [],
+    tricks: [
+      { leader: 0 as Seat, winner: 0 as Seat, cards: playedCards([0, C(13, 'S')], [1, C(2, 'S')], [2, C(3, 'S')], [3, C(5, 'S')]) },
+      { leader: 0 as Seat, winner: 0 as Seat, cards: playedCards([0, C(14, 'S')], [1, C(6, 'S')], [2, C(7, 'S')], [3, C(8, 'S')]) },
+    ],
+  };
+
+  it('a low (7) contract stops drawing after a round or two and switches to cashing', () => {
+    const state = playState({ ...drewTwice, contract: 7 });
+    // Cap reached for a 7-bid → do NOT lead a third trump; cash the master A♥ instead.
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(14, 'H'));
+  });
+
+  it('a high (9) contract keeps drawing trumps past the low-bid cap', () => {
+    const state = playState({ ...drewTwice, contract: 9 });
+    // We still hold the master trump and opponents can hold trumps → keep drawing.
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(12, 'S'));
+  });
+
+  it('stops drawing once a forcing round shows opponents outrank us on trumps', () => {
+    // Declarer (bid 9) led J♠; an opponent won with A♠. Declarer now holds Q♠,5♠,4♠,
+    // but the K♠ is still out with an opponent → drawing only feeds them. Cash A♥.
+    const state = playState({
+      turn: 0,
+      declarer: 0,
+      trump: 'S',
+      contract: 9,
+      hands: [[C(12, 'S'), C(5, 'S'), C(4, 'S'), C(14, 'H')], [], [], []],
+      currentTrick: [],
+      tricks: [
+        { leader: 0, winner: 1, cards: playedCards([0, C(11, 'S')], [1, C(14, 'S')], [2, C(3, 'S')], [3, C(2, 'S')]) },
+      ],
+    });
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(14, 'H'));
+  });
+
+  it('partner of a 9+ declarer who won a trick continues the draw with the highest trump', () => {
+    // Contract 9, declarer is seat 2; its partner (seat 0) just won the previous
+    // trick with the K♥ and is on lead holding A♠,5♠. It leads the A♠ (highest trump)
+    // to keep drawing and signal the declarer that the top trumps are on our side.
+    const state = playState({
+      turn: 0,
+      declarer: 2,
+      trump: 'S',
+      contract: 9,
+      hands: [[C(14, 'S'), C(5, 'S'), C(7, 'H')], [], [], []],
+      currentTrick: [],
+      tricks: [
+        { leader: 3, winner: 0, cards: playedCards([3, C(9, 'H')], [0, C(13, 'H')], [1, C(2, 'H')], [2, C(3, 'H')]) },
+      ],
+    });
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(14, 'S'));
+  });
+
+  it('partner does NOT force trumps high on a modest (8) contract', () => {
+    // Same shape but contract 8 → the partner should not blow its high trump; it
+    // reverts to normal play (does not lead the A♠).
+    const state = playState({
+      turn: 0,
+      declarer: 2,
+      trump: 'S',
+      contract: 8,
+      hands: [[C(14, 'S'), C(5, 'S'), C(7, 'H')], [], [], []],
+      currentTrick: [],
+      tricks: [
+        { leader: 3, winner: 0, cards: playedCards([3, C(9, 'H')], [0, C(13, 'H')], [1, C(2, 'H')], [2, C(3, 'H')]) },
+      ],
+    });
+    expect((chooseTarneebAction(state) as { card: Card }).card).not.toEqual(C(14, 'S'));
+  });
+
+  it('keeps its last trump in reserve rather than leading it out', () => {
+    // Declarer holds a single trump (K♠) plus a heart holding whose Q is beatable.
+    // With no safe side suit to develop, it still refuses to lead its last trump —
+    // it keeps it for late control and leads a low heart instead.
+    const state = playState({
+      turn: 0,
+      declarer: 0,
+      trump: 'S',
+      contract: 8,
+      hands: [[C(13, 'S'), C(12, 'H'), C(5, 'H')], [], [], []],
+      currentTrick: [],
+    });
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(5, 'H'));
   });
 });
 

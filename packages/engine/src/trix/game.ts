@@ -279,7 +279,7 @@ function playAvoidance(state: TrixState, seat: Seat, card: Card): TrixState {
     .map((pc) => ({ card: pc.card, leader: trickLeader }));
   const doubledLeaders = doubledHere.length
     ? [...(state.doubledLeaders ?? []), ...doubledHere]
-    : state.doubledLeaders;
+    : (state.doubledLeaders ?? []);
 
   const next: TrixState = {
     ...state,

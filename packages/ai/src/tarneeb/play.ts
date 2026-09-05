@@ -1,6 +1,6 @@
 import type { Card, Seat, Suit, TarneebState } from '@tarneeb/engine';
 import { cardBeats, legalPlays, nextSeat, teamOf, trickWinner } from '@tarneeb/engine';
-import { bothOpponentsVoidOfTrump, suitStrength, type Knowledge } from './knowledge.js';
+import { suitStrength, type Knowledge } from './knowledge.js';
 
 // --- tiny helpers ----------------------------------------------------------
 
@@ -85,6 +85,27 @@ function ruffRisk(suit: Suit, seat: Seat, k: Knowledge): boolean {
   return opps.some(
     (s) => k.isVoid(s, suit) && k.trump && k.outstanding(k.trump).some((r) => k.couldHold(s, k.trump, r)),
   );
+}
+
+/** Highest trump rank an OPPONENT of `seat` could still hold (null if none can). */
+function highestOppTrump(seat: Seat, k: Knowledge): number | null {
+  const trump = k.trump;
+  const opps: Seat[] = teamOf(seat) === 0 ? [1, 3] : [0, 2];
+  let best: number | null = null;
+  for (const r of k.outstanding(trump)) {
+    // outstanding() is ascending, so the last qualifying rank is the highest.
+    if (opps.some((s) => k.couldHold(s, trump, r))) best = r;
+  }
+  return best;
+}
+
+/** How many completed tricks the declarer has led with a trump (drawing rounds). */
+function trumpDrawRounds(state: TarneebState, declarer: Seat, trump: Suit): number {
+  let n = 0;
+  for (const t of state.tricks) {
+    if (t.leader === declarer && t.cards[0]?.card.suit === trump) n++;
+  }
+  return n;
 }
 
 /** Strongest non-trump suit I hold (for suit-preference signalling / cashing). */
@@ -224,17 +245,43 @@ function finesseLead(hand: readonly Card[], k: Knowledge, trump: Suit): Card | n
 
 function chooseLead(state: TarneebState, seat: Seat, k: Knowledge, hand: readonly Card[]): Card {
   const trump = state.trump!;
-  const myTeam = teamOf(seat);
   const isDeclarer = state.declarer === seat;
   const myTrumps = hand.filter((c) => c.suit === trump);
-  const oppsVoidTrump = bothOpponentsVoidOfTrump(k, myTeam);
 
-  // T1: as declarer, draw the opponents' trumps while they still hold some.
-  if (isDeclarer && k.trumpsOutstanding() > 0 && !oppsVoidTrump && myTrumps.length > 0) {
+  // T1: as declarer, draw the opponents' trumps — but calibrate the effort to the
+  // contract and to how the trumps are actually splitting:
+  //   • Keep at least one trump in reserve for late control (never lead the last).
+  //   • Stop once no opponent can hold a trump (only partner's / none remain) —
+  //     drawing then only strips our own side.
+  //   • A low contract (7) means a short trump holding, so draw just a round or two;
+  //     a high contract (9+) can keep drawing until the opponents are dry.
+  //   • Once a forcing round has shown the opponents still outrank us on trumps,
+  //     stop — we would only be feeding them our own good trumps.
+  if (isDeclarer && myTrumps.length >= 2) {
     const topOut = k.highestOutstanding(trump);
     const myTop = highest(myTrumps);
-    if (topOut === null || myTop.rank > topOut || myTrumps.length >= 4) {
-      return myTop; // lead the master / from length to strip opponents
+    const oppTop = highestOppTrump(seat, k);
+    const holdMaster = topOut === null || myTop.rank > topOut;
+    const contract = state.contract ?? 7;
+    const worthDrawing =
+      holdMaster || myTrumps.length >= 4 || (contract >= 9 && myTrumps.length >= 3);
+    const draws = trumpDrawRounds(state, seat, trump);
+    const cap = contract <= 7 ? 2 : contract === 8 ? 3 : Infinity;
+    const outgunned = draws >= 1 && oppTop !== null && oppTop > myTop.rank;
+    if (oppTop !== null && worthDrawing && draws < cap && !outgunned) {
+      return myTop; // cash the master, or force out a higher trump
+    }
+  }
+
+  // T1-partner: on an ambitious contract (9+), when the declarer's partner has just
+  // won a trick, continue the draw by leading the HIGHEST trump. This both strips the
+  // opponents and tells the declarer the top trumps are safely on our side, so they
+  // can relax their own trump control. Keep the last trump in reserve.
+  const isDeclarerPartner = state.declarer !== null && !isDeclarer && teamOf(seat) === teamOf(state.declarer);
+  if (isDeclarerPartner && (state.contract ?? 7) >= 9 && myTrumps.length >= 2) {
+    const wonLast = state.tricks[state.tricks.length - 1]?.winner === seat;
+    if (wonLast && highestOppTrump(seat, k) !== null) {
+      return highest(myTrumps);
     }
   }
 
@@ -256,9 +303,15 @@ function chooseLead(state: TarneebState, seat: Seat, k: Knowledge, hand: readonl
   if (dev) return dev;
 
   // No safe side suit to broach. Prefer leading a trump over squandering an honour:
-  // the declarer keeps drawing (lead high); a partner leads low and lets the
-  // declarer control trumps. Only if we're out of trumps do we lead a side card.
-  if (myTrumps.length > 0) return isDeclarer ? highest(myTrumps) : lowest(myTrumps);
+  // a partner leads low and lets the declarer keep trump control. The declarer,
+  // though, holds its LAST trump in reserve for late control rather than burning it.
+  if (myTrumps.length > 0) {
+    if (isDeclarer && myTrumps.length === 1) {
+      const sideCards = nonTrump(hand, trump);
+      if (sideCards.length) return lowest(sideCards);
+    }
+    return isDeclarer ? highest(myTrumps) : lowest(myTrumps);
+  }
   const side = nonTrump(hand, trump);
   return lowest(side.length ? side : hand);
 }
@@ -312,23 +365,37 @@ function chooseFollow(state: TarneebState, seat: Seat, k: Knowledge, legal: read
     if (canFollow) {
       const secondHand = trick.length === 1;
       if (secondHand) {
-        // T7: second hand low — never commit an unsupported honour (a later
-        // opponent may hold a higher one). Win only with a supported top: we
-        // hold the two highest cards still out in the suit (e.g. A-K).
-        return supportedTopWinner(hand, led, k) ?? lowest(legal);
-      }
-      // T3: third hand. With no threat behind, win as cheaply as possible. With a
-      // threat, only commit if we can SECURE the trick with a master (a card that
-      // beats every outstanding card); otherwise duck and conserve — don't burn a
-      // high card a later opponent can still top.
-      if (!threat) return lowest(winners);
-      if (!ruffThreatBehind(state, seat, k, led)) {
         const top = k.highestOutstanding(led);
         const masters = winners.filter((c) => top === null || c.rank > top);
-        if (masters.length > 0) return lowest(masters);
+        // Capture an opponent's TOP honour with our master. If they lead the highest
+        // card still out (nothing bigger for us to wait for) and we hold the master,
+        // take it now — a master wins only once, so spend it on their biggest card
+        // rather than ducking and later wasting it on a smaller one. But if a higher
+        // enemy honour is still out, duck and wait to capture THAT one instead.
+        const ledTopHonour = winning.rank >= 11 && (top === null || winning.rank >= top);
+        if (ledTopHonour && masters.length > 0) return lowest(masters);
+        // T7: otherwise second hand low — never commit an unsupported honour (a later
+        // opponent may hold a higher one). Win only with a supported top: we hold the
+        // two highest cards still out in the suit (e.g. A-K).
+        return supportedTopWinner(hand, led, k) ?? lowest(legal);
       }
-      const losers = legal.filter((c) => c.rank < winning.rank);
-      return losers.length > 0 ? highest(losers) : lowest(winners);
+      // T3: third hand HIGH. An opponent is winning and the fourth hand plays last,
+      // so we play high to try to win the trick for our side:
+      //   • No threat behind → the cheapest winner already holds up.
+      //   • A master (beats every outstanding card) → play it, cheapest such.
+      //   • Otherwise contest with the HIGHEST winner — ducking would simply concede
+      //     the trick, since an opponent is already winning.
+      //   • Exception: if a later opponent can RUFF, no led-suit card can win, so
+      //     keep the honour and duck low.
+      if (!threat) return lowest(winners);
+      if (ruffThreatBehind(state, seat, k, led)) {
+        const losers = legal.filter((c) => c.rank < winning.rank);
+        return losers.length > 0 ? highest(losers) : lowest(legal);
+      }
+      const top = k.highestOutstanding(led);
+      const masters = winners.filter((c) => top === null || c.rank > top);
+      if (masters.length > 0) return lowest(masters);
+      return highest(winners);
     }
     // Void → ruff with the cheapest trump that wins; never waste a high trump.
     return lowest(winners);
