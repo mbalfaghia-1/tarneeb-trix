@@ -515,6 +515,63 @@ html, body, #root {
 }
 .tool-btn:hover { background: var(--surface-3); border-color: var(--accent); }
 
+/* ---- online: menu banner + lobby ---- */
+.online-banner {
+  border: 1px solid var(--accent); border-radius: 14px; cursor: pointer;
+  background: linear-gradient(160deg, #245c40, #143526); color: #fff;
+  font-size: 20px; font-weight: 800; letter-spacing: 0.5px; padding: 16px;
+  box-shadow: 0 8px 22px var(--shadow); transition: transform 0.12s ease;
+}
+.online-banner:hover { transform: translateY(-2px); }
+
+.online {
+  flex: 1; display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px 16px; overflow-y: auto;
+  background: radial-gradient(ellipse at 50% 20%, var(--table-1) 0%, var(--table-2) 90%);
+}
+.online-card {
+  width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 18px; box-shadow: 0 8px 24px var(--shadow);
+}
+.online-field, .online-section { display: flex; flex-direction: column; gap: 8px; }
+.online-field > span, .online-section-title { font-size: 13px; color: var(--text-dim); font-weight: 700; }
+.online-section-title { font-size: 15px; color: var(--accent); }
+.online-field input, .online-code-input {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; font-size: 16px;
+}
+.online-code-input { text-align: center; letter-spacing: 6px; font-size: 24px; font-weight: 800; text-transform: uppercase; }
+.online-check { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-size: 14px; }
+.online-or { text-align: center; color: var(--text-dim); }
+.online-error { color: var(--negative); font-size: 14px; text-align: center; }
+.online-hint { color: var(--text-dim); font-size: 13px; text-align: center; margin: 0; }
+
+.online-code-label { text-align: center; color: var(--text-dim); font-size: 13px; font-weight: 700; }
+.online-code {
+  text-align: center; font-size: 44px; font-weight: 800; letter-spacing: 10px;
+  color: var(--accent); font-variant-numeric: tabular-nums;
+}
+.online-seats { display: flex; flex-direction: column; gap: 8px; }
+.online-seat {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+}
+.online-seat.human { border-color: var(--accent); }
+.online-seat-n {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface-3); color: var(--text-dim); font-size: 12px; font-weight: 800;
+}
+.online-seat-name { font-weight: 700; }
+.online-seat.empty .online-seat-name, .online-seat.bot .online-seat-name { color: var(--text-dim); font-weight: 500; }
+.online-actions { display: flex; gap: 12px; }
+.online-actions .primary-btn { flex: 1; }
+.ghost-btn {
+  background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 16px; cursor: pointer; font-weight: 700;
+}
+.ghost-btn:hover { border-color: var(--negative); color: var(--negative); }
+
 /* ---- score calculators ---- */
 .calc {
   flex: 1; overflow-y: auto;

@@ -120,6 +120,23 @@ const en: Dict = {
   modeRegular: 'Regular',
   modeComplex: 'Complex',
   gameComplete: 'Game complete',
+  // online multiplayer
+  playOnline: 'Play Online',
+  yourName: 'Your name',
+  defaultName: 'Player',
+  createTable: 'Create table',
+  joinTable: 'Join table',
+  tableCode: 'Table code',
+  enterCode: 'Enter code',
+  startGame: 'Start game',
+  leaveTable: 'Leave table',
+  connecting: 'Connecting…',
+  connErr: 'Connection problem',
+  connErrBody: 'Could not reach the game server. Make sure it is running.',
+  retry: 'Retry',
+  seatEmpty: 'Empty',
+  botLabel: 'Bot',
+  waitingHint: 'Share the code. Empty seats become bots when you start.',
 };
 
 const ar: Dict = {
@@ -237,6 +254,23 @@ const ar: Dict = {
   modeRegular: 'عادي',
   modeComplex: 'كومبلكس',
   gameComplete: 'انتهت اللعبة',
+  // online multiplayer
+  playOnline: 'العب أونلاين',
+  yourName: 'اسمك',
+  defaultName: 'لاعب',
+  createTable: 'إنشاء طاولة',
+  joinTable: 'انضمام لطاولة',
+  tableCode: 'رمز الطاولة',
+  enterCode: 'أدخل الرمز',
+  startGame: 'ابدأ اللعبة',
+  leaveTable: 'مغادرة الطاولة',
+  connecting: 'جارٍ الاتصال…',
+  connErr: 'مشكلة في الاتصال',
+  connErrBody: 'تعذّر الوصول إلى خادم اللعبة. تأكد من تشغيله.',
+  retry: 'إعادة المحاولة',
+  seatEmpty: 'فارغ',
+  botLabel: 'بوت',
+  waitingHint: 'شارك الرمز. المقاعد الفارغة تصبح بوتات عند البدء.',
 };
 
 const DICTS: Record<Lang, Dict> = { en, ar };

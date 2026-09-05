@@ -6,14 +6,20 @@ export type CalcId = 'tarneebCalc' | 'trixCalc';
 export function MainMenu({
   onPick,
   onCalc,
+  onOnline,
   t,
 }: {
   onPick: (g: GameId) => void;
   onCalc: (c: CalcId) => void;
+  onOnline: () => void;
   t: T;
 }) {
   return (
     <main className="menu">
+      <button type="button" className="online-banner" onClick={onOnline}>
+        🌐 {t('playOnline')}
+      </button>
+
       <div className="menu-cards">
         <button type="button" className="menu-card tarneeb" onClick={() => onPick('tarneeb')}>
           <span className="menu-emoji">♠</span>

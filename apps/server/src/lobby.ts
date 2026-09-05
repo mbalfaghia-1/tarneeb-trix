@@ -7,26 +7,14 @@ import {
   createRoom,
   type GameKind,
   type HumanEntry,
+  type LobbyState,
   type PlayerId,
+  type PublicSeat,
   type RedactedView,
   type RoomConfig,
   type RoomHandle,
   type Seat,
 } from '@tarneeb/room';
-
-export interface PublicSeat {
-  readonly kind: 'human' | 'bot' | 'empty';
-  readonly name: string | null;
-}
-
-export interface LobbyState {
-  readonly code: string;
-  readonly game: GameKind;
-  readonly partnership: boolean;
-  readonly started: boolean;
-  readonly hostId: PlayerId;
-  readonly seats: readonly PublicSeat[];
-}
 
 interface Table {
   code: string;

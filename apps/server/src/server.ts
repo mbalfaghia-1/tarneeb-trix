@@ -3,8 +3,8 @@
 // is re-broadcast: the lobby state before the game starts, and each seat's redacted
 // view afterward.
 import { WebSocketServer, type WebSocket } from 'ws';
+import type { ClientMsg, ServerMsg } from '@tarneeb/room';
 import { Lobby } from './lobby.js';
-import type { ClientMsg, ServerMsg } from './protocol.js';
 
 interface Conn {
   socket: WebSocket;
@@ -61,6 +61,22 @@ export function createGameServer(port: number): WebSocketServer {
         conn.playerId = msg.playerId;
         conn.code = msg.code;
         broadcast(msg.code);
+        break;
+      }
+      case 'hello': {
+        // A reconnected socket re-attaches to its player + table and gets the current state.
+        if (!lobby.hasTable(msg.code) || lobby.seatOf(msg.code, msg.playerId) === null) {
+          send(conn.socket, { t: 'error', message: 'table not found' });
+          break;
+        }
+        conn.playerId = msg.playerId;
+        conn.code = msg.code;
+        if (lobby.isStarted(msg.code)) {
+          const view = lobby.viewFor(msg.code, msg.playerId);
+          if (view) send(conn.socket, { t: 'view', view });
+        } else {
+          send(conn.socket, { t: 'lobby', state: lobby.lobbyState(msg.code) });
+        }
         break;
       }
       case 'start': {

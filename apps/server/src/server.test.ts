@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import { WebSocket } from 'ws';
 import { getLegalActions, type TarneebState } from '@tarneeb/engine';
+import type { ClientMsg, ServerMsg } from '@tarneeb/room';
 import { createGameServer } from './server.js';
-import type { ClientMsg, ServerMsg } from './protocol.js';
 
 const connect = (port: number): Promise<WebSocket> =>
   new Promise((resolve, reject) => {
