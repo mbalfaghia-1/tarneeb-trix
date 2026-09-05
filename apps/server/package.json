@@ -1,0 +1,25 @@
+{
+  "name": "@tarneeb/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted Node WebSocket server for online Tarneeb/Trix, wrapping @tarneeb/room.",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/server.js --external:ws",
+    "start": "node dist/server.js",
+    "serve": "npm run build && node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tarneeb/room": "*",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "@types/ws": "^8.5.12",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
