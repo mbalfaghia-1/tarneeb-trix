@@ -1,0 +1,27 @@
+{
+  "name": "@tarneeb/room",
+  "version": "0.0.0",
+  "description": "Server-authoritative game-room core: seating, bot-fill, action validation, per-seat state redaction. Transport-agnostic (no networking).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tarneeb/engine": "*",
+    "@tarneeb/ai": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
