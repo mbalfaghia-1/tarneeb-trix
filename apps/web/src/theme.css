@@ -535,6 +535,22 @@ html, body, #root {
   .shed-empty { width: 50px; height: 72px; font-size: 26px; }
 }
 
+/* Landscape (tablets / laptops): the four-row shedding board is tall, and on a
+   limited-height wide screen its bottom (diamonds) row overlapped the centered
+   "You" nameplate. Compact the cards, lift the board, and tuck the bottom seat down
+   a little so every suit row stays clear of the seat. */
+@media (orientation: landscape) and (max-height: 1050px) {
+  .shedding-board { top: 38%; gap: 5px; }
+  .shed-row { min-height: 72px; }
+  .shed-card { margin-left: -30px; }
+  .shedding-board .card.lg { width: 52px; height: 72px; }
+  .shedding-board .card.lg .corner .rank { font-size: 14px; }
+  .shedding-board .card.lg .corner .suit { font-size: 13px; }
+  .shedding-board .card.lg .pip { font-size: 27px; }
+  .shed-empty { width: 52px; height: 72px; font-size: 26px; }
+  .seat-bottom { bottom: 175px; }
+}
+
 .contract-modal { min-width: 340px; }
 .contract-list { display: flex; flex-direction: column; gap: 8px; }
 .contract-btn {
