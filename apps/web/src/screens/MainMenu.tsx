@@ -1,22 +1,45 @@
 import type { T } from '../i18n';
 
 export type GameId = 'tarneeb' | 'trix' | 'trixComplex';
+export type CalcId = 'tarneebCalc' | 'trixCalc';
 
-export function MainMenu({ onPick, t }: { onPick: (g: GameId) => void; t: T }) {
+export function MainMenu({
+  onPick,
+  onCalc,
+  t,
+}: {
+  onPick: (g: GameId) => void;
+  onCalc: (c: CalcId) => void;
+  t: T;
+}) {
   return (
     <main className="menu">
-      <button type="button" className="menu-card tarneeb" onClick={() => onPick('tarneeb')}>
-        <span className="menu-emoji">♠</span>
-        <span className="menu-name">{t('tarneeb')}</span>
-      </button>
-      <button type="button" className="menu-card trix" onClick={() => onPick('trix')}>
-        <span className="menu-emoji">👑</span>
-        <span className="menu-name">{t('trixName')}</span>
-      </button>
-      <button type="button" className="menu-card complex" onClick={() => onPick('trixComplex')}>
-        <span className="menu-emoji">☠</span>
-        <span className="menu-name">{t('trixComplex')}</span>
-      </button>
+      <div className="menu-cards">
+        <button type="button" className="menu-card tarneeb" onClick={() => onPick('tarneeb')}>
+          <span className="menu-emoji">♠</span>
+          <span className="menu-name">{t('tarneeb')}</span>
+        </button>
+        <button type="button" className="menu-card trix" onClick={() => onPick('trix')}>
+          <span className="menu-emoji">👑</span>
+          <span className="menu-name">{t('trixName')}</span>
+        </button>
+        <button type="button" className="menu-card complex" onClick={() => onPick('trixComplex')}>
+          <span className="menu-emoji">☠</span>
+          <span className="menu-name">{t('trixComplex')}</span>
+        </button>
+      </div>
+
+      <div className="menu-tools">
+        <div className="menu-tools-head">🧮 {t('scoreKeeper')}</div>
+        <div className="menu-tools-row">
+          <button type="button" className="tool-btn" onClick={() => onCalc('tarneebCalc')}>
+            {t('tarneebCalc')}
+          </button>
+          <button type="button" className="tool-btn" onClick={() => onCalc('trixCalc')}>
+            {t('trixCalc')}
+          </button>
+        </div>
+      </div>
     </main>
   );
 }

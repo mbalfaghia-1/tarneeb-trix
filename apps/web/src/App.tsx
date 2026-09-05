@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { makeT, isRtl, type Lang } from './i18n';
 import { Sound, primeAudio } from './lib/sound';
-import { MainMenu, type GameId } from './screens/MainMenu';
+import { MainMenu, type GameId, type CalcId } from './screens/MainMenu';
 import { TarneebScreen } from './screens/TarneebScreen';
 import { TrixScreen } from './screens/TrixScreen';
+import { TarneebCalculator } from './screens/TarneebCalculator';
+import { TrixCalculator } from './screens/TrixCalculator';
 
-type Screen = 'menu' | GameId;
+type Screen = 'menu' | GameId | CalcId;
 
 export default function App() {
   const [lang, setLang] = useState<Lang>('en');
@@ -43,6 +45,8 @@ export default function App() {
     }
   }, [theme]);
 
+  const isGame = screen === 'tarneeb' || screen === 'trix' || screen === 'trixComplex';
+
   const title =
     screen === 'trix'
       ? t('trixName')
@@ -50,7 +54,11 @@ export default function App() {
         ? t('trixComplex')
         : screen === 'tarneeb'
           ? t('tarneeb')
-          : t('chooseGame');
+          : screen === 'tarneebCalc'
+            ? t('tarneebCalc')
+            : screen === 'trixCalc'
+              ? t('trixCalc')
+              : t('chooseGame');
 
   const pick = (g: GameId) => {
     if (g === 'tarneeb') {
@@ -95,7 +103,7 @@ export default function App() {
           <button type="button" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}>
             {t('language')}
           </button>
-          {screen !== 'menu' && (
+          {isGame && (
             <button type="button" onClick={() => setGameKey((k) => k + 1)}>
               {t('newGame')}
             </button>
@@ -108,7 +116,7 @@ export default function App() {
         </div>
       </header>
 
-      {screen === 'menu' && <MainMenu onPick={pick} t={t} />}
+      {screen === 'menu' && <MainMenu onPick={pick} onCalc={setScreen} t={t} />}
       {screen === 'tarneeb' && <TarneebScreen key={gameKey} t={t} />}
       {screen === 'trix' && (
         <TrixScreen key={gameKey} t={t} mode="regular" partnership={partnership} />
@@ -116,6 +124,8 @@ export default function App() {
       {screen === 'trixComplex' && (
         <TrixScreen key={gameKey} t={t} mode="complex" partnership={partnership} />
       )}
+      {screen === 'tarneebCalc' && <TarneebCalculator t={t} />}
+      {screen === 'trixCalc' && <TrixCalculator t={t} />}
 
       {pending && (
         <div className="overlay">
