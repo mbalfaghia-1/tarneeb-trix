@@ -152,6 +152,7 @@ const en: Dict = {
   cantAdd: 'To add',
   needKoh: 'choose who took the K♥',
   needOrder: 'set each finish position',
+  gameOverHint: 'Undo the last round or Reset to play again.',
 };
 
 const ar: Dict = {
@@ -301,6 +302,7 @@ const ar: Dict = {
   cantAdd: 'لإضافة اليد',
   needKoh: 'اختر من أخذ شايب الكوبة',
   needOrder: 'حدد ترتيب خروج كل لاعب',
+  gameOverHint: 'تراجع عن آخر جولة أو ابدأ من جديد.',
 };
 
 const DICTS: Record<Lang, Dict> = { en, ar };

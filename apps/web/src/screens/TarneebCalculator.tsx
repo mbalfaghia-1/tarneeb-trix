@@ -108,7 +108,8 @@ export function TarneebCalculator({ t }: { t: T }) {
         {winner !== null && <span className="calc-win">🏆 {t('winsGame', { name: names[winner] })}</span>}
       </div>
 
-      <div className="calc-form">
+      {winner === null ? (
+        <div className="calc-form">
         <div className="calc-field">
           <label>{t('whoBid')}</label>
           <div className="seg">
@@ -155,7 +156,13 @@ export function TarneebCalculator({ t }: { t: T }) {
         <button type="button" className="primary-btn" onClick={addRound}>
           {t('addRound')}
         </button>
-      </div>
+        </div>
+      ) : (
+        <div className="calc-form calc-gameover">
+          <div className="calc-win">🏆 {t('winsGame', { name: names[winner] })}</div>
+          <div className="online-hint">{t('gameOverHint')}</div>
+        </div>
+      )}
 
       <div className="calc-history">
         <div className="calc-history-head">
