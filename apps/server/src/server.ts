@@ -3,27 +3,35 @@
 // is re-broadcast: the lobby state before the game starts, and each seat's redacted
 // view afterward.
 import { WebSocketServer, type WebSocket } from 'ws';
-import type { ClientMsg, ServerMsg } from '@tarneeb/room';
+import type { ClientMsg, GameKind, ServerMsg } from '@tarneeb/room';
 import { Lobby } from './lobby.js';
 
 interface Conn {
   socket: WebSocket;
   playerId: string | null;
   code: string | null;
+  queue: { game: GameKind; partnership: boolean } | null;
 }
+
+/** How long a quick-match waits for more humans before filling seats with bots. */
+const MATCH_WAIT_MS = 15000;
+const NEEDED = 4;
 
 export function createGameServer(port: number): WebSocketServer {
   const wss = new WebSocketServer({ port });
   const lobby = new Lobby();
   const conns = new Map<WebSocket, Conn>();
+  const matchTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const bucket = (game: GameKind, partnership: boolean) => `${game}:${partnership ? 1 : 0}`;
 
   const send = (socket: WebSocket, msg: ServerMsg) => {
     if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(msg));
   };
-  const sockOf = (playerId: string): WebSocket | null => {
-    for (const c of conns.values()) if (c.playerId === playerId) return c.socket;
+  const connOf = (playerId: string): Conn | null => {
+    for (const c of conns.values()) if (c.playerId === playerId) return c;
     return null;
   };
+  const sockOf = (playerId: string): WebSocket | null => connOf(playerId)?.socket ?? null;
 
   // Broadcast a table to everyone seated: lobby state pre-start, per-seat view after.
   const broadcast = (code: string) => {
@@ -42,6 +50,62 @@ export function createGameServer(port: number): WebSocketServer {
       }
     }
   };
+
+  const broadcastQueue = (game: GameKind, partnership: boolean) => {
+    const size = lobby.queueSize(game, partnership);
+    for (const h of lobby.queuedPlayers(game, partnership)) {
+      const sock = sockOf(h.playerId);
+      if (sock) send(sock, { t: 'queued', game, partnership, size, needed: NEEDED });
+    }
+  };
+
+  const clearTimer = (game: GameKind, partnership: boolean) => {
+    const key = bucket(game, partnership);
+    const tm = matchTimers.get(key);
+    if (tm) {
+      clearTimeout(tm);
+      matchTimers.delete(key);
+    }
+  };
+  const armTimer = (game: GameKind, partnership: boolean) => {
+    const key = bucket(game, partnership);
+    if (matchTimers.has(key)) return;
+    matchTimers.set(
+      key,
+      setTimeout(() => {
+        matchTimers.delete(key);
+        tryMatch(game, partnership, true);
+      }, MATCH_WAIT_MS),
+    );
+  };
+
+  // Form a match when the queue is full (or forced, filling the rest with bots);
+  // otherwise just refresh everyone's "finding players (n/4)" status.
+  function tryMatch(game: GameKind, partnership: boolean, force: boolean) {
+    const size = lobby.queueSize(game, partnership);
+    if (size === 0) {
+      clearTimer(game, partnership);
+      return;
+    }
+    if (size >= NEEDED || force) {
+      const m = lobby.formMatch(game, partnership);
+      if (m) {
+        for (const h of m.humans) {
+          const c = connOf(h.playerId);
+          if (c) {
+            c.code = m.code;
+            c.queue = null;
+          }
+        }
+        broadcast(m.code);
+      }
+      if (lobby.queueSize(game, partnership) > 0) armTimer(game, partnership);
+      else clearTimer(game, partnership);
+    } else {
+      broadcastQueue(game, partnership);
+      armTimer(game, partnership);
+    }
+  }
 
   const handle = (conn: Conn, msg: ClientMsg) => {
     switch (msg.t) {
@@ -95,13 +159,33 @@ export function createGameServer(port: number): WebSocketServer {
         broadcast(msg.code);
         break;
       }
+      case 'quickmatch': {
+        const partnership = msg.partnership ?? false;
+        conn.playerId = msg.playerId;
+        conn.queue = { game: msg.game, partnership };
+        lobby.enqueue(msg.game, partnership, { playerId: msg.playerId, name: msg.name });
+        tryMatch(msg.game, partnership, false);
+        break;
+      }
+      case 'matchnow': {
+        const partnership = msg.partnership ?? false;
+        tryMatch(msg.game, partnership, true);
+        break;
+      }
+      case 'cancelmatch': {
+        const partnership = msg.partnership ?? false;
+        lobby.dequeue(msg.game, partnership, msg.playerId);
+        conn.queue = null;
+        broadcastQueue(msg.game, partnership);
+        break;
+      }
       default:
         throw new Error('unknown message');
     }
   };
 
   wss.on('connection', (socket: WebSocket) => {
-    const conn: Conn = { socket, playerId: null, code: null };
+    const conn: Conn = { socket, playerId: null, code: null, queue: null };
     conns.set(socket, conn);
 
     socket.on('message', (data) => {
@@ -120,6 +204,12 @@ export function createGameServer(port: number): WebSocketServer {
     });
 
     socket.on('close', () => {
+      // Drop out of any matchmaking queue.
+      if (conn.queue && conn.playerId) {
+        const { game, partnership } = conn.queue;
+        lobby.dequeue(game, partnership, conn.playerId);
+        broadcastQueue(game, partnership);
+      }
       // Pre-start: free the seat so the table stays tidy. Post-start we keep the seat
       // (reconnection / bot-takeover is a later refinement).
       if (conn.code && conn.playerId && !lobby.isStarted(conn.code)) {

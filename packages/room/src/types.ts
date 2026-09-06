@@ -30,6 +30,7 @@ export interface HumanEntry {
  */
 export interface RedactedView {
   readonly seat: Seat;
+  readonly game: GameKind;
   readonly you: SeatOccupant;
   readonly occupants: readonly SeatOccupant[];
   readonly handCounts: readonly number[];

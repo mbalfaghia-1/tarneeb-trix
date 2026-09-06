@@ -27,8 +27,12 @@ interface Table {
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous O/0/I/1
 const MAX_SEATS = 4;
 
+const bucketKey = (game: GameKind, partnership: boolean): string => `${game}:${partnership ? 1 : 0}`;
+
 export class Lobby {
   private readonly tables = new Map<string, Table>();
+  // Public matchmaking queues, keyed by game + partnership.
+  private readonly queues = new Map<string, HumanEntry[]>();
 
   private freshCode(): string {
     for (let tries = 0; tries < 1000; tries++) {
@@ -131,6 +135,54 @@ export class Lobby {
       hostId: t.hostId,
       seats,
     };
+  }
+
+  // --- public matchmaking ---
+
+  /** Add a player to a game's public queue (idempotent). Returns the queue size. */
+  enqueue(game: GameKind, partnership: boolean, entry: HumanEntry): number {
+    const key = bucketKey(game, partnership);
+    const q = this.queues.get(key) ?? [];
+    if (!q.some((e) => e.playerId === entry.playerId)) q.push(entry);
+    this.queues.set(key, q);
+    return q.length;
+  }
+
+  dequeue(game: GameKind, partnership: boolean, playerId: PlayerId): void {
+    const key = bucketKey(game, partnership);
+    const q = this.queues.get(key);
+    if (q) this.queues.set(key, q.filter((e) => e.playerId !== playerId));
+  }
+
+  queueSize(game: GameKind, partnership: boolean): number {
+    return this.queues.get(bucketKey(game, partnership))?.length ?? 0;
+  }
+
+  queuedPlayers(game: GameKind, partnership: boolean): readonly HumanEntry[] {
+    return this.queues.get(bucketKey(game, partnership)) ?? [];
+  }
+
+  /**
+   * Pull up to four queued players into a fresh, already-started table (empty seats
+   * become bots). Returns the new table code and the humans seated, or null if the
+   * queue is empty.
+   */
+  formMatch(game: GameKind, partnership: boolean): { code: string; humans: HumanEntry[] } | null {
+    const key = bucketKey(game, partnership);
+    const q = this.queues.get(key) ?? [];
+    if (q.length === 0) return null;
+    const humans = q.slice(0, 4);
+    this.queues.set(key, q.slice(4));
+    const code = this.freshCode();
+    const config: RoomConfig = { game, partnership };
+    this.tables.set(code, {
+      code,
+      config,
+      hostId: humans[0]!.playerId,
+      humans,
+      room: createRoom(config, humans),
+    });
+    return { code, humans };
   }
 
   hasTable(code: string): boolean {

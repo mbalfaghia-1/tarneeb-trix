@@ -92,6 +92,7 @@ export class Room<S, A> implements RoomHandle {
     const awaiting = this.awaitingSeat();
     return {
       seat,
+      game: this.config.game,
       you: this.occupants[seat]!,
       occupants: this.occupants,
       handCounts: this.ctl.handCounts(this.state),

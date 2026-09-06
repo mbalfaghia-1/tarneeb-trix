@@ -22,9 +22,14 @@ export type ClientMsg =
   | { readonly t: 'hello'; readonly playerId: PlayerId; readonly code: string } // re-attach a reconnected socket
   | { readonly t: 'start'; readonly playerId: PlayerId; readonly code: string }
   | { readonly t: 'action'; readonly playerId: PlayerId; readonly code: string; readonly action: unknown }
-  | { readonly t: 'leave'; readonly playerId: PlayerId; readonly code: string };
+  | { readonly t: 'leave'; readonly playerId: PlayerId; readonly code: string }
+  // public matchmaking (play with strangers)
+  | { readonly t: 'quickmatch'; readonly playerId: PlayerId; readonly name: string; readonly game: GameKind; readonly partnership?: boolean }
+  | { readonly t: 'matchnow'; readonly playerId: PlayerId; readonly game: GameKind; readonly partnership?: boolean }
+  | { readonly t: 'cancelmatch'; readonly playerId: PlayerId; readonly game: GameKind; readonly partnership?: boolean };
 
 export type ServerMsg =
   | { readonly t: 'lobby'; readonly state: LobbyState }
   | { readonly t: 'view'; readonly view: RedactedView }
+  | { readonly t: 'queued'; readonly game: GameKind; readonly partnership: boolean; readonly size: number; readonly needed: number }
   | { readonly t: 'error'; readonly message: string };

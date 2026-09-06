@@ -137,6 +137,15 @@ const en: Dict = {
   seatEmpty: 'Empty',
   botLabel: 'Bot',
   waitingHint: 'Share the code. Empty seats become bots when you start.',
+  quickMatch: 'Quick Match',
+  findPlayers: 'Find players',
+  quickMatchHint: 'Get matched with other players online.',
+  orPlayFriends: 'or play with friends',
+  createTableShort: 'Create a private table',
+  findingPlayers: 'Finding players…',
+  findingHint: 'Matching you with others. Empty seats fill with bots.',
+  playNowBots: 'Play now with bots',
+  cancel: 'Cancel',
 };
 
 const ar: Dict = {
@@ -271,6 +280,15 @@ const ar: Dict = {
   seatEmpty: 'فارغ',
   botLabel: 'بوت',
   waitingHint: 'شارك الرمز. المقاعد الفارغة تصبح بوتات عند البدء.',
+  quickMatch: 'مباراة سريعة',
+  findPlayers: 'ابحث عن لاعبين',
+  quickMatchHint: 'سنطابقك مع لاعبين آخرين على الإنترنت.',
+  orPlayFriends: 'أو العب مع الأصدقاء',
+  createTableShort: 'أنشئ طاولة خاصة',
+  findingPlayers: 'جارٍ البحث عن لاعبين…',
+  findingHint: 'نطابقك مع آخرين. المقاعد الفارغة تُملأ ببوتات.',
+  playNowBots: 'العب الآن مع البوتات',
+  cancel: 'إلغاء',
 };
 
 const DICTS: Record<Lang, Dict> = { en, ar };

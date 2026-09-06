@@ -56,6 +56,33 @@ describe('lobby: seating and start', () => {
     expect(() => lobby.submit(code, 'p0', legal[0])).not.toThrow();
   });
 
+  it('matchmaking: queues players and forms a started table (bot-filled)', () => {
+    const lobby = new Lobby();
+    expect(lobby.enqueue('tarneeb', false, { playerId: 'a', name: 'A' })).toBe(1);
+    expect(lobby.enqueue('tarneeb', false, { playerId: 'b', name: 'B' })).toBe(2);
+    expect(lobby.enqueue('tarneeb', false, { playerId: 'a', name: 'A' })).toBe(2); // idempotent
+    // Different bucket is independent.
+    expect(lobby.queueSize('trix', true)).toBe(0);
+
+    const m = lobby.formMatch('tarneeb', false)!;
+    expect(m.humans.map((h) => h.playerId)).toEqual(['a', 'b']);
+    expect(lobby.queueSize('tarneeb', false)).toBe(0); // drained
+    // The formed table is a live, started room seating a & b (rest bots).
+    expect(lobby.isStarted(m.code)).toBe(true);
+    expect(lobby.seatOf(m.code, 'a')).toBe(0);
+    expect(lobby.seatOf(m.code, 'b')).toBe(1);
+    expect(lobby.lobbyState(m.code).seats.map((s) => s.kind)).toEqual(['human', 'human', 'bot', 'bot']);
+  });
+
+  it('matchmaking: dequeue removes a waiting player', () => {
+    const lobby = new Lobby();
+    lobby.enqueue('trix', true, { playerId: 'a', name: 'A' });
+    lobby.enqueue('trix', true, { playerId: 'b', name: 'B' });
+    lobby.dequeue('trix', true, 'a');
+    expect(lobby.queueSize('trix', true)).toBe(1);
+    expect(lobby.queuedPlayers('trix', true).map((h) => h.playerId)).toEqual(['b']);
+  });
+
   it('promotes a new host when the host leaves before start', () => {
     const lobby = new Lobby();
     const code = lobby.createTable({ playerId: 'p0', name: 'H' }, 'tarneeb');

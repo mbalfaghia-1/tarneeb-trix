@@ -39,17 +39,28 @@ const saveCode = (c: string | null) => {
 
 export type OnlineStatus = 'connecting' | 'online' | 'error';
 
+export interface QueuedInfo {
+  game: GameKind;
+  partnership: boolean;
+  size: number;
+  needed: number;
+}
+
 export interface OnlineGame {
   status: OnlineStatus;
   error: string | null;
   lobby: LobbyState | null;
   view: RedactedView | null;
+  queued: QueuedInfo | null;
   me: string;
   create: (game: GameKind, partnership: boolean, name: string) => void;
   join: (code: string, name: string) => void;
   start: () => void;
   leave: () => void;
   submit: (action: unknown) => void;
+  quickMatch: (game: GameKind, partnership: boolean, name: string) => void;
+  matchNow: () => void;
+  cancelMatch: () => void;
 }
 
 export function useOnlineGame(): OnlineGame {
@@ -57,10 +68,12 @@ export function useOnlineGame(): OnlineGame {
   const ws = useRef<WebSocket | null>(null);
   const code = useRef<string | null>(loadCode());
   const queue = useRef<ClientMsg[]>([]);
+  const bucket = useRef<{ game: GameKind; partnership: boolean } | null>(null);
   const [status, setStatus] = useState<OnlineStatus>('connecting');
   const [error, setError] = useState<string | null>(null);
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const [view, setView] = useState<RedactedView | null>(null);
+  const [queued, setQueued] = useState<QueuedInfo | null>(null);
 
   useEffect(() => {
     let disposed = false; // ignore events from a socket torn down by StrictMode's re-mount
@@ -99,6 +112,9 @@ export function useOnlineGame(): OnlineGame {
         if (!msg.state.started) setView(null);
       } else if (msg.t === 'view') {
         setView(msg.view);
+        setQueued(null); // matched → game started
+      } else if (msg.t === 'queued') {
+        setQueued({ game: msg.game, partnership: msg.partnership, size: msg.size, needed: msg.needed });
       } else if (msg.t === 'error') {
         setError(msg.message);
         if (msg.message === 'table not found') {
@@ -155,6 +171,40 @@ export function useOnlineGame(): OnlineGame {
     },
     [send],
   );
+  const quickMatch = useCallback(
+    (game: GameKind, partnership: boolean, name: string) => {
+      setError(null);
+      bucket.current = { game, partnership };
+      setQueued({ game, partnership, size: 1, needed: 4 });
+      send({ t: 'quickmatch', playerId: me.current, name, game, partnership });
+    },
+    [send],
+  );
+  const matchNow = useCallback(() => {
+    const b = bucket.current;
+    if (b) send({ t: 'matchnow', playerId: me.current, game: b.game, partnership: b.partnership });
+  }, [send]);
+  const cancelMatch = useCallback(() => {
+    const b = bucket.current;
+    if (b) send({ t: 'cancelmatch', playerId: me.current, game: b.game, partnership: b.partnership });
+    bucket.current = null;
+    setQueued(null);
+  }, [send]);
 
-  return { status, error, lobby, view, me: me.current, create, join, start, leave, submit };
+  return {
+    status,
+    error,
+    lobby,
+    view,
+    queued,
+    me: me.current,
+    create,
+    join,
+    start,
+    leave,
+    submit,
+    quickMatch,
+    matchNow,
+    cancelMatch,
+  };
 }

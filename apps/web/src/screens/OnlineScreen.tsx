@@ -31,14 +31,39 @@ export function OnlineScreen({ t }: { t: T }) {
   const displayName = () => name.trim() || t('defaultName');
 
   // --- in a started game → show the board (a view only arrives after start) ---
-  if (game.view && game.lobby) {
-    const board =
-      game.lobby.game === 'tarneeb' ? (
-        <OnlineTarneebBoard view={game.view} submit={game.submit} onLeave={game.leave} t={t} />
-      ) : (
-        <OnlineTrixBoard view={game.view} submit={game.submit} onLeave={game.leave} t={t} />
-      );
-    return board;
+  if (game.view) {
+    return game.view.game === 'tarneeb' ? (
+      <OnlineTarneebBoard view={game.view} submit={game.submit} onLeave={game.leave} t={t} />
+    ) : (
+      <OnlineTrixBoard view={game.view} submit={game.submit} onLeave={game.leave} t={t} />
+    );
+  }
+
+  // --- matchmaking: finding players ---
+  if (game.queued) {
+    const q = game.queued;
+    return (
+      <main className="online">
+        <div className="online-card">
+          <div className="online-finding">
+            <div className="online-spinner" aria-hidden="true" />
+            <div className="online-finding-title">{t('findingPlayers')}</div>
+            <div className="online-finding-count">
+              {q.size} / {q.needed}
+            </div>
+            <p className="online-hint">{t('findingHint')}</p>
+          </div>
+          <div className="online-actions">
+            <button type="button" className="primary-btn" onClick={game.matchNow}>
+              {t('playNowBots')}
+            </button>
+            <button type="button" className="ghost-btn" onClick={game.cancelMatch}>
+              {t('cancel')}
+            </button>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   // --- connection problem ---
@@ -107,7 +132,7 @@ export function OnlineScreen({ t }: { t: T }) {
         </label>
 
         <div className="online-section">
-          <div className="online-section-title">{t('createTable')}</div>
+          <div className="online-section-title">🎲 {t('quickMatch')}</div>
           <div className="seg">
             {(['tarneeb', 'trix', 'trixComplex'] as const).map((g) => (
               <button key={g} type="button" className={kind === g ? 'on' : ''} onClick={() => setKind(g)}>
@@ -125,13 +150,25 @@ export function OnlineScreen({ t }: { t: T }) {
             type="button"
             className="primary-btn"
             disabled={disabled}
+            onClick={() => game.quickMatch(kind, kind !== 'tarneeb' && partners, displayName())}
+          >
+            {t('findPlayers')}
+          </button>
+          <p className="online-hint">{t('quickMatchHint')}</p>
+        </div>
+
+        <div className="online-or">— {t('orPlayFriends')} —</div>
+
+        <div className="online-section">
+          <button
+            type="button"
+            className="ghost-btn"
+            disabled={disabled}
             onClick={() => game.create(kind, kind !== 'tarneeb' && partners, displayName())}
           >
             {t('createTable')}
           </button>
         </div>
-
-        <div className="online-or">—</div>
 
         <div className="online-section">
           <div className="online-section-title">{t('joinTable')}</div>
