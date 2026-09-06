@@ -8,11 +8,17 @@ export function TrixSeat({
   state,
   t,
   justWon = false,
+  name,
+  count,
 }: {
   seat: Seat;
   state: TrixState;
   t: T;
   justWon?: boolean;
+  /** Real player name (online); falls back to the positional label. */
+  name?: string;
+  /** Card count override (online views redact other hands). */
+  count?: number;
 }) {
   const pos = posOf(seat, 0 as Seat);
   const isTurn =
@@ -21,7 +27,8 @@ export function TrixSeat({
   // Once the deal is over, hide the remaining-card stack/count — a finished deal can
   // legitimately leave the last shedder holding cards, but showing the count then reads
   // as an error rather than a result.
-  const count = dealDone ? 0 : state.hands[seat]?.length ?? 0;
+  const cardCount = count ?? (dealDone ? 0 : state.hands[seat]?.length ?? 0);
+  const label = name ?? turnName(seat, t);
   const isKing = state.king === seat;
   const tricks = state.phase === 'playing' ? state.tricksTaken[seat] ?? 0 : 0;
   const finished = state.finishOrder.indexOf(seat);
@@ -49,15 +56,15 @@ export function TrixSeat({
     <div className={`seat seat-${pos} ${isTurn ? 'turn' : ''} ${justWon ? 'won' : ''}`}>
       {pos !== 'bottom' && (
         <div className="mini-stack" aria-hidden="true">
-          {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
+          {Array.from({ length: Math.min(cardCount, 4) }).map((_, i) => (
             <div className="card back xs" key={i} style={{ left: `${i * 3}px` }} />
           ))}
-          {count > 0 && <span className="count">{count}</span>}
+          {cardCount > 0 && <span className="count">{cardCount}</span>}
         </div>
       )}
       <div className={`nameplate ${isTurn ? 'active' : ''}`}>
-        <span className="avatar">{turnName(seat, t).charAt(0)}</span>
-        <span className="name">{turnName(seat, t)}</span>
+        <span className="avatar">{label.charAt(0)}</span>
+        <span className="name">{label}</span>
         {isKing && <span className="badge-declarer">👑</span>}
       </div>
       {state.phase === 'playing' && <div className="trix-tricks">🂠 {tricks}</div>}

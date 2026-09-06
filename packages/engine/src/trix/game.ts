@@ -160,6 +160,7 @@ function beginAvoidancePlay(state: TrixState): TrixState {
     captured: [[], [], [], []],
     tricksTaken: [0, 0, 0, 0],
     voids: [[], [], [], []],
+    lastTrick: null,
   };
 }
 
@@ -289,6 +290,7 @@ function playAvoidance(state: TrixState, seat: Seat, card: Card): TrixState {
     voids,
     doubledLeaders,
     currentTrick: [],
+    lastTrick: { leader: trickLeader, cards: currentTrick, winner },
     leader: winner,
     turn: winner,
   };

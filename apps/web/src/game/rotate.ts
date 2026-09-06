@@ -57,10 +57,16 @@ export function rotateTrix(state: TrixState, viewer: Seat): TrixState {
   const sh = viewer;
   const rs = (s: Seat) => rseat(s, sh);
   const rpc = (pc: PlayedCard): PlayedCard => ({ seat: rs(pc.seat), card: pc.card });
+  const rtrick = (tr: CompletedTrick): CompletedTrick => ({
+    leader: rs(tr.leader),
+    winner: rs(tr.winner),
+    cards: tr.cards.map(rpc),
+  });
   return {
     ...state,
     hands: bySeat(state.hands, sh),
     turn: rs(state.turn),
+    ...(state.lastTrick ? { lastTrick: rtrick(state.lastTrick) } : {}),
     leader: state.leader === null ? null : rs(state.leader),
     king: rs(state.king),
     firstKing: rs(state.firstKing),

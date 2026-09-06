@@ -11,6 +11,7 @@ import { SheddingBoard } from '../components/trix/SheddingBoard';
 import { TrixHand } from '../components/trix/TrixHand';
 import { ContractModal } from '../components/trix/ContractModal';
 import { DoubleModal } from '../components/trix/DoubleModal';
+import { LastTrick } from '../components/LastTrick';
 import { TrixDealOverlay, TrixGameOverlay } from '../components/trix/TrixOverlays';
 
 export function TrixScreen({
@@ -53,6 +54,8 @@ export function TrixScreen({
           <span className={redContract ? 'red' : 'black'}>{CONTRACT_ICON[state.contract]}</span>
         </div>
       )}
+
+      <LastTrick trick={state.lastTrick ?? null} nameFor={(s) => turnName(s, t)} t={t} />
 
       {SEATS.map((seat) => (
         <TrixSeat

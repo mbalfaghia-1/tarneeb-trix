@@ -31,15 +31,22 @@ export function SeatView({
   state,
   t,
   justWon = false,
+  name,
+  count,
 }: {
   seat: Seat;
   state: TarneebState;
   t: T;
   justWon?: boolean;
+  /** Real player name (online); falls back to the positional label (You/Partner/…). */
+  name?: string;
+  /** Card count override (online views redact other hands, so pass the real size). */
+  count?: number;
 }) {
   const pos = posOf(seat, HUMAN_SEAT);
   const isTurn = state.turn === seat && state.phase !== 'hand-over' && state.phase !== 'game-over';
-  const count = state.hands[seat]?.length ?? 0;
+  const label = name ?? seatName(seat, t);
+  const cardCount = count ?? state.hands[seat]?.length ?? 0;
   const bidLabel = lastBidLabel(state, seat, t);
   const isDeclarer = state.declarer === seat;
 
@@ -47,15 +54,15 @@ export function SeatView({
     <div className={`seat seat-${pos} ${isTurn ? 'turn' : ''} ${justWon ? 'won' : ''}`}>
       {pos !== 'bottom' && (
         <div className="mini-stack" aria-hidden="true">
-          {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
+          {Array.from({ length: Math.min(cardCount, 4) }).map((_, i) => (
             <div className="card back xs" key={i} style={{ left: `${i * 3}px` }} />
           ))}
-          {count > 0 && <span className="count">{count}</span>}
+          {cardCount > 0 && <span className="count">{cardCount}</span>}
         </div>
       )}
       <div className={`nameplate ${isTurn ? 'active' : ''}`}>
-        <span className="avatar">{seatName(seat, t).charAt(0)}</span>
-        <span className="name">{seatName(seat, t)}</span>
+        <span className="avatar">{label.charAt(0)}</span>
+        <span className="name">{label}</span>
         {isDeclarer && <span className="badge-declarer">★</span>}
       </div>
       {bidLabel && <div className="bid-bubble">{bidLabel}</div>}

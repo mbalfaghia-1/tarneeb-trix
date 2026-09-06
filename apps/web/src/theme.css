@@ -321,6 +321,24 @@ html, body, #root {
 .trump-indicator .red { color: var(--card-red); }
 .trump-indicator .black { color: var(--text); }
 
+/* "Last trick" viewer — button tucked under the trump indicator + its popup. */
+.last-trick-btn {
+  position: absolute; top: 78px; right: 20px; z-index: 20;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  font-size: 24px; cursor: pointer; display: grid; place-items: center;
+  box-shadow: 0 4px 12px var(--shadow);
+}
+.last-trick-btn:hover { border-color: var(--accent); }
+.last-trick-panel { min-width: 300px; }
+.lt-cards { display: flex; gap: 10px; justify-content: center; margin: 14px 0; flex-wrap: wrap; }
+.lt-slot { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.lt-slot.winner { position: relative; }
+.lt-slot.winner .card { box-shadow: 0 0 0 3px var(--accent), 0 4px 12px var(--shadow); }
+.lt-name { font-size: 12px; color: var(--text-dim); max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lt-slot.winner .lt-name { color: var(--accent); font-weight: 800; }
+@media (max-width: 480px) { .last-trick-btn { top: 60px; right: 12px; width: 40px; height: 40px; font-size: 20px; } }
+
 /* ---- modals ---- */
 .modal {
   position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%);

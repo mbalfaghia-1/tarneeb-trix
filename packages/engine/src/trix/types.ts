@@ -1,5 +1,5 @@
 import type { Card, Rank, Suit } from '../cards.js';
-import type { PlayedCard, Seat } from '../tarneeb/types.js';
+import type { CompletedTrick, PlayedCard, Seat } from '../tarneeb/types.js';
 
 /**
  * Trix contracts. In regular Trix: four avoidance trick-games + `trix` shedding.
@@ -83,6 +83,9 @@ export interface TrixState {
 
   // avoidance trick-games
   readonly currentTrick: readonly PlayedCard[];
+  /** The most recently completed avoidance trick this deal (for the "last trick"
+   *  viewer). Null at the start of each contract; absent in the shedding contract. */
+  readonly lastTrick?: CompletedTrick | null;
   readonly captured: readonly (readonly Card[])[]; // cards each seat has taken this deal
   readonly tricksTaken: readonly number[]; // per seat
   readonly voids: readonly (readonly Suit[])[]; // suits each seat has shown void in

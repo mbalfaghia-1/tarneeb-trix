@@ -146,6 +146,8 @@ const en: Dict = {
   findingHint: 'Matching you with others. Empty seats fill with bots.',
   playNowBots: 'Play now with bots',
   cancel: 'Cancel',
+  lastTrick: 'Last trick',
+  close: 'Close',
 };
 
 const ar: Dict = {
@@ -289,6 +291,8 @@ const ar: Dict = {
   findingHint: 'نطابقك مع آخرين. المقاعد الفارغة تُملأ ببوتات.',
   playNowBots: 'العب الآن مع البوتات',
   cancel: 'إلغاء',
+  lastTrick: 'آخر أكلة',
+  close: 'إغلاق',
 };
 
 const DICTS: Record<Lang, Dict> = { en, ar };

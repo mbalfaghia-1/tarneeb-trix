@@ -3,14 +3,14 @@ import {
   SEATS,
   getTrixLegalActions,
   type Card,
+  type Seat,
   type TrixContract,
   type TrixState,
 } from '@tarneeb/engine';
 import type { RedactedView } from '@tarneeb/room';
 import { rotateTrix } from '../game/rotate';
-import { turnName } from '../game/labels';
-import { CONTRACT_ICON } from '../game/trixLabels';
 import type { T } from '../i18n';
+import { CONTRACT_ICON } from '../game/trixLabels';
 import { TrixScoreboard } from '../components/trix/TrixScoreboard';
 import { TrixSeat } from '../components/trix/TrixSeat';
 import { TrixTrick } from '../components/trix/TrixTrick';
@@ -18,6 +18,7 @@ import { SheddingBoard } from '../components/trix/SheddingBoard';
 import { TrixHand } from '../components/trix/TrixHand';
 import { ContractModal } from '../components/trix/ContractModal';
 import { DoubleModal } from '../components/trix/DoubleModal';
+import { LastTrick } from '../components/LastTrick';
 import { TrixGameOverlay } from '../components/trix/TrixOverlays';
 
 export function OnlineTrixBoard({
@@ -46,6 +47,9 @@ export function OnlineTrixBoard({
     }
   }, [real, yourTurn, seat, submit]);
 
+  const nameFor = (s: Seat) => view.occupants[(s + seat) % 4]?.name ?? '';
+  const countFor = (s: Seat) => view.handCounts[(s + seat) % 4] ?? 0;
+
   const humanContract = yourTurn && state.phase === 'contract-select';
   const humanDoubling = yourTurn && state.phase === 'doubling';
   const contractShown = state.contract && (state.phase === 'playing' || state.phase === 'shedding');
@@ -60,7 +64,7 @@ export function OnlineTrixBoard({
         : state.phase === 'doubling'
           ? t('double_title')
           : t('yourTurn');
-  else status = t('waitingFor', { name: turnName(state.turn, t) });
+  else status = t('waitingFor', { name: nameFor(state.turn) });
 
   return (
     <main className="table">
@@ -72,8 +76,12 @@ export function OnlineTrixBoard({
         </div>
       )}
 
+      {state.phase !== 'shedding' && (
+        <LastTrick trick={state.lastTrick ?? null} nameFor={nameFor} t={t} />
+      )}
+
       {SEATS.map((s) => (
-        <TrixSeat key={s} seat={s} state={state} t={t} />
+        <TrixSeat key={s} seat={s} state={state} t={t} name={nameFor(s)} count={countFor(s)} />
       ))}
 
       {state.phase === 'shedding' ? (

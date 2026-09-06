@@ -1,7 +1,14 @@
-import { SEATS, SUIT_IS_RED, SUIT_SYMBOL, type Card, type Suit, type TarneebState } from '@tarneeb/engine';
+import {
+  SEATS,
+  SUIT_IS_RED,
+  SUIT_SYMBOL,
+  type Card,
+  type Seat,
+  type Suit,
+  type TarneebState,
+} from '@tarneeb/engine';
 import type { RedactedView } from '@tarneeb/room';
 import { rotateTarneeb } from '../game/rotate';
-import { turnName } from '../game/labels';
 import type { T } from '../i18n';
 import { SeatView } from '../components/SeatView';
 import { Scoreboard } from '../components/Scoreboard';
@@ -9,6 +16,7 @@ import { TrickView } from '../components/TrickView';
 import { Hand } from '../components/Hand';
 import { BiddingModal } from '../components/BiddingModal';
 import { TrumpModal } from '../components/TrumpModal';
+import { LastTrick } from '../components/LastTrick';
 import { GameOverOverlay } from '../components/Overlays';
 
 export function OnlineTarneebBoard({
@@ -28,11 +36,15 @@ export function OnlineTarneebBoard({
   const humanBidding = yourTurn && state.phase === 'bidding';
   const humanTrump = yourTurn && state.phase === 'trump-select';
 
+  // Rotated seat s ↔ real seat (s + viewer) % 4 → real occupant name / card count.
+  const nameFor = (s: Seat) => view.occupants[(s + seat) % 4]?.name ?? '';
+  const countFor = (s: Seat) => view.handCounts[(s + seat) % 4] ?? 0;
+
   let status = '';
   if (state.phase === 'game-over') status = '';
   else if (yourTurn) status = t('yourTurn');
-  else if (state.phase === 'bidding') status = t('biddingFor', { name: turnName(state.turn, t) });
-  else status = t('waitingFor', { name: turnName(state.turn, t) });
+  else if (state.phase === 'bidding') status = t('biddingFor', { name: nameFor(state.turn) });
+  else status = t('waitingFor', { name: nameFor(state.turn) });
 
   return (
     <main className="table">
@@ -44,8 +56,10 @@ export function OnlineTarneebBoard({
         </div>
       )}
 
+      <LastTrick trick={state.tricks[state.tricks.length - 1] ?? null} nameFor={nameFor} t={t} />
+
       {SEATS.map((s) => (
-        <SeatView key={s} seat={s} state={state} t={t} />
+        <SeatView key={s} seat={s} state={state} t={t} name={nameFor(s)} count={countFor(s)} />
       ))}
 
       <TrickView state={state} reviewTrick={null} />

@@ -9,6 +9,7 @@ import { TrickView } from '../components/TrickView';
 import { Hand } from '../components/Hand';
 import { BiddingModal } from '../components/BiddingModal';
 import { TrumpModal } from '../components/TrumpModal';
+import { LastTrick } from '../components/LastTrick';
 import { GameOverOverlay, HandOverOverlay } from '../components/Overlays';
 
 export function TarneebScreen({ t }: { t: T }) {
@@ -36,6 +37,8 @@ export function TarneebScreen({ t }: { t: T }) {
           </span>
         </div>
       )}
+
+      <LastTrick trick={state.tricks[state.tricks.length - 1] ?? null} nameFor={(s) => turnName(s, t)} t={t} />
 
       {SEATS.map((seat) => (
         <SeatView
