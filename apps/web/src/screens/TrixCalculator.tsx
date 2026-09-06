@@ -24,6 +24,8 @@ interface Deal {
 }
 interface SavedState {
   names: string[];
+  /** Team names for partnership: [players 1+3, players 2+4]. */
+  teamNames: [string, string];
   mode: TrixMode;
   /** Partnership scoring: teams are players 1+3 vs 2+4 (seats 0+2 vs 1+3). */
   partnership: boolean;
@@ -37,12 +39,13 @@ function load(): SavedState {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const s = JSON.parse(raw) as SavedState;
-      return { ...s, partnership: s.partnership ?? false }; // migrate pre-partnership saves
+      // Migrate pre-partnership / pre-team-name saves.
+      return { ...s, partnership: s.partnership ?? false, teamNames: s.teamNames ?? ['', ''] };
     }
   } catch {
     /* ignore */
   }
-  return { names: ['', '', '', ''], mode: 'regular', partnership: false, deals: [] };
+  return { names: ['', '', '', ''], teamNames: ['', ''], mode: 'regular', partnership: false, deals: [] };
 }
 
 const zeros = (): number[] => [0, 0, 0, 0];
@@ -116,7 +119,7 @@ export function TrixCalculator({ t }: { t: T }) {
   const partnership = state.partnership;
   // Teams follow the engine: seats 0+2 vs 1+3 → players 1+3 vs 2+4.
   const teamTotals: [number, number] = [totals[0]! + totals[2]!, totals[1]! + totals[3]!];
-  const teamNames: [string, string] = [`${names[0]} + ${names[2]}`, `${names[1]} + ${names[3]}`];
+  const teamPair: [string, string] = [`${names[0]} + ${names[2]}`, `${names[1]} + ${names[3]}`];
 
   const buildInputs = (): TrixDealInputs => {
     const inputs: TrixDealInputs = {};
@@ -180,6 +183,12 @@ export function TrixCalculator({ t }: { t: T }) {
       n[i] = v;
       return { ...s, names: n };
     });
+  const setTeamName = (i: 0 | 1, v: string) =>
+    setState((s) => {
+      const tn: [string, string] = [s.teamNames[0], s.teamNames[1]];
+      tn[i] = v;
+      return { ...s, teamNames: tn };
+    });
 
   // Each cell is capped to the total budget minus what the others already hold, so
   // the counts can never exceed the fixed total (4 queens / 13 diamonds / 13 tricks).
@@ -218,6 +227,42 @@ export function TrixCalculator({ t }: { t: T }) {
 
   return (
     <main className="calc">
+      {/* Setup first: choose game type + partnership, then name the teams/players below. */}
+      <div className="calc-form calc-setup">
+        <div className="calc-field">
+          <label>{t('gameType')}</label>
+          <div className="seg">
+            {(['regular', 'complex'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={state.mode === m ? 'on' : ''}
+                disabled={state.deals.length > 0}
+                onClick={() => setMode(m)}
+              >
+                {m === 'regular' ? t('modeRegular') : t('modeComplex')}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="calc-field">
+          <label>{t('partnershipQ')}</label>
+          <div className="seg">
+            {([false, true] as const).map((p) => (
+              <button
+                key={String(p)}
+                type="button"
+                className={partnership === p ? 'on' : ''}
+                disabled={state.deals.length > 0}
+                onClick={() => setPartnership(p)}
+              >
+                {p ? t('partners') : t('alone')}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {partnership && (
         <div className="calc-totals">
           {([0, 1] as const).map((tm) => (
@@ -225,7 +270,13 @@ export function TrixCalculator({ t }: { t: T }) {
               key={tm}
               className={`calc-team ${teamTotals[tm] === Math.max(...teamTotals) && state.deals.length ? 'winner' : ''}`}
             >
-              <div className="calc-team-label">{teamNames[tm]}</div>
+              <input
+                className="calc-name"
+                value={state.teamNames[tm]}
+                placeholder={teamPair[tm]}
+                onChange={(e) => setTeamName(tm, e.target.value)}
+                aria-label={`team ${tm + 1} name`}
+              />
               <div className="calc-score">{teamTotals[tm]}</div>
             </div>
           ))}
@@ -250,40 +301,6 @@ export function TrixCalculator({ t }: { t: T }) {
       </div>
 
       <div className="calc-form">
-        <div className="calc-field">
-          <label>{t('gameType')}</label>
-          <div className="seg">
-            {(['regular', 'complex'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={state.mode === m ? 'on' : ''}
-                disabled={state.deals.length > 0}
-                onClick={() => setMode(m)}
-              >
-                {m === 'regular' ? t('modeRegular') : t('modeComplex')}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="calc-field">
-          <label>{t('partnershipQ')}</label>
-          <div className="seg">
-            {([false, true] as const).map((p) => (
-              <button
-                key={String(p)}
-                type="button"
-                className={partnership === p ? 'on' : ''}
-                disabled={state.deals.length > 0}
-                onClick={() => setPartnership(p)}
-              >
-                {p ? t('partners') : t('alone')}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="calc-kingdom">
           {gameComplete ? (
             <span className="calc-win">🏆 {t('gameComplete')}</span>
