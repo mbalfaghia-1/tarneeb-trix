@@ -65,6 +65,29 @@ describe('room: humans + bots played through the room API', () => {
   });
 });
 
+describe('room: turn timeout (auto-play a stalled human)', () => {
+  it('forceCurrentTurn plays the waiting human turn and advances', () => {
+    const room = createRoom({ game: 'tarneeb', seed: 11 }, [{ playerId: 'p0', name: 'Me' }]);
+    expect(room.awaitingSeat()).toBe(0); // human on turn
+    const before = JSON.stringify(room.rawState());
+    expect(room.forceCurrentTurn()).toBe(true);
+    expect(JSON.stringify(room.rawState())).not.toBe(before); // the turn was played
+  });
+
+  it('forceCurrentTurn is a no-op on a finished (all-bot) table', () => {
+    const room = createRoom({ game: 'tarneeb', seed: 11 }); // no humans → runs to the end
+    expect(room.isTerminal()).toBe(true);
+    expect(room.forceCurrentTurn()).toBe(false);
+  });
+
+  it('repeated forceCurrentTurn drives a 1-human game to completion', () => {
+    const room = createRoom({ game: 'tarneeb', seed: 4 }, [{ playerId: 'p0', name: 'AFK' }]);
+    let guard = 0;
+    while (!room.isTerminal() && guard++ < 100_000) room.forceCurrentTurn();
+    expect(room.isTerminal()).toBe(true);
+  });
+});
+
 describe('room: per-seat redaction never leaks other hands', () => {
   it('a seat view shows only its own cards; others are hidden but counted', () => {
     const room = createRoom({ game: 'tarneeb', seed: 42 }, [

@@ -15,6 +15,8 @@ interface Conn {
 
 /** How long a quick-match waits for more humans before filling seats with bots. */
 const MATCH_WAIT_MS = 15000;
+/** How long a human has to act before the server auto-plays their turn (bot brain). */
+const TURN_TIMEOUT_MS = 25000;
 const NEEDED = 4;
 
 export function createGameServer(port: number): WebSocketServer {
@@ -22,6 +24,7 @@ export function createGameServer(port: number): WebSocketServer {
   const lobby = new Lobby();
   const conns = new Map<WebSocket, Conn>();
   const matchTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const turnTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const bucket = (game: GameKind, partnership: boolean) => `${game}:${partnership ? 1 : 0}`;
 
   const send = (socket: WebSocket, msg: ServerMsg) => {
@@ -33,6 +36,27 @@ export function createGameServer(port: number): WebSocketServer {
   };
   const sockOf = (playerId: string): WebSocket | null => connOf(playerId)?.socket ?? null;
 
+  const clearTurnTimer = (code: string) => {
+    const tm = turnTimers.get(code);
+    if (tm) {
+      clearTimeout(tm);
+      turnTimers.delete(code);
+    }
+  };
+  // Arm a per-table turn timer while a human is on turn; on expiry the server auto-plays
+  // that turn with the bot brain, so a slow or disconnected player never stalls the game.
+  function armTurnTimer(code: string) {
+    clearTurnTimer(code);
+    if (lobby.awaitingHumanSeat(code) === null) return; // bot turn / terminal
+    turnTimers.set(
+      code,
+      setTimeout(() => {
+        turnTimers.delete(code);
+        if (lobby.forceTurn(code)) broadcast(code); // re-broadcasts and re-arms
+      }, TURN_TIMEOUT_MS),
+    );
+  }
+
   // Broadcast a table to everyone seated: lobby state pre-start, per-seat view after.
   const broadcast = (code: string) => {
     if (!lobby.hasTable(code)) return;
@@ -42,7 +66,9 @@ export function createGameServer(port: number): WebSocketServer {
         const sock = sockOf(h.playerId);
         if (view && sock) send(sock, { t: 'view', view });
       }
+      armTurnTimer(code);
     } else {
+      clearTurnTimer(code);
       const state = lobby.lobbyState(code);
       for (const h of lobby.humansOf(code)) {
         const sock = sockOf(h.playerId);

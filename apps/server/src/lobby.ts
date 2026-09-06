@@ -185,6 +185,19 @@ export class Lobby {
     return { code, humans };
   }
 
+  /** The seat whose turn it is, if that seat is a human (else null) — for turn timeouts. */
+  awaitingHumanSeat(code: string): Seat | null {
+    const room = this.tables.get(code)?.room;
+    if (!room) return null;
+    const seat = room.awaitingSeat();
+    return seat !== null && room.occupants[seat]?.kind === 'human' ? seat : null;
+  }
+
+  /** Auto-play the current (stalled) human turn with the bot brain. */
+  forceTurn(code: string): boolean {
+    return this.tables.get(code)?.room?.forceCurrentTurn() ?? false;
+  }
+
   hasTable(code: string): boolean {
     return this.tables.has(code);
   }

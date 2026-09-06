@@ -103,6 +103,17 @@ export class Room<S, A> implements RoomHandle {
     };
   }
 
+  forceCurrentTurn(): boolean {
+    const legal = this.ctl.legalActions(this.state);
+    if (legal.length === 0) return false; // terminal
+    const actor = this.ctl.actorOf(legal[0]!);
+    // advance() already plays bot/auto turns, so a stopped state is a human's turn.
+    if (actor === null || this.occupants[actor]!.kind !== 'human') return false;
+    this.state = this.ctl.apply(this.state, this.ctl.botAction(this.state));
+    this.advance();
+    return true;
+  }
+
   submit(playerId: PlayerId, action: unknown): void {
     const seat = this.seatOf(playerId);
     if (seat === null) throw new Error('player is not seated in this room');

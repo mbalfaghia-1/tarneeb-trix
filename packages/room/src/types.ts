@@ -51,6 +51,9 @@ export interface RoomHandle {
   viewFor(seat: Seat): RedactedView;
   /** Apply a human action. Throws if it is not that player's turn or not legal. */
   submit(playerId: PlayerId, action: unknown): void;
+  /** Auto-play the current turn with the bot brain (for a stalled/disconnected human).
+   *  Returns true if a human turn was played, false if it was a bot/terminal. */
+  forceCurrentTurn(): boolean;
   awaitingSeat(): Seat | null;
   isTerminal(): boolean;
   /** Full un-redacted state — server/debug use only, never send to a client. */
