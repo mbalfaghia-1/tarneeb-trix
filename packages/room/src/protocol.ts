@@ -30,6 +30,6 @@ export type ClientMsg =
 
 export type ServerMsg =
   | { readonly t: 'lobby'; readonly state: LobbyState }
-  | { readonly t: 'view'; readonly view: RedactedView }
+  | { readonly t: 'view'; readonly code: string; readonly view: RedactedView }
   | { readonly t: 'queued'; readonly game: GameKind; readonly partnership: boolean; readonly size: number; readonly needed: number; readonly names: readonly string[] }
   | { readonly t: 'error'; readonly message: string };

@@ -64,7 +64,7 @@ export function createGameServer(port: number): WebSocketServer {
       for (const h of lobby.humansOf(code)) {
         const view = lobby.viewFor(code, h.playerId);
         const sock = sockOf(h.playerId);
-        if (view && sock) send(sock, { t: 'view', view });
+        if (view && sock) send(sock, { t: 'view', code, view });
       }
       armTurnTimer(code);
     } else {
@@ -164,7 +164,7 @@ export function createGameServer(port: number): WebSocketServer {
         conn.code = msg.code;
         if (lobby.isStarted(msg.code)) {
           const view = lobby.viewFor(msg.code, msg.playerId);
-          if (view) send(conn.socket, { t: 'view', view });
+          if (view) send(conn.socket, { t: 'view', code: msg.code, view });
         } else {
           send(conn.socket, { t: 'lobby', state: lobby.lobbyState(msg.code) });
         }

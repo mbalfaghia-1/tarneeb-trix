@@ -1,4 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  applyAction,
+  applyTrixAction,
+  type TarneebAction,
+  type TarneebState,
+  type TrixAction,
+  type TrixState,
+} from '@tarneeb/engine';
 import type { ClientMsg, GameKind, LobbyState, RedactedView, ServerMsg } from '@tarneeb/room';
 
 const SERVER_URL =
@@ -70,6 +78,7 @@ export function useOnlineGame(): OnlineGame {
   const code = useRef<string | null>(loadCode());
   const queue = useRef<ClientMsg[]>([]);
   const bucket = useRef<{ game: GameKind; partnership: boolean } | null>(null);
+  const lastServerView = useRef<RedactedView | null>(null); // authoritative view, to revert a rejected optimistic move
   const [status, setStatus] = useState<OnlineStatus>('connecting');
   const [error, setError] = useState<string | null>(null);
   const [lobby, setLobby] = useState<LobbyState | null>(null);
@@ -112,6 +121,9 @@ export function useOnlineGame(): OnlineGame {
         saveCode(msg.state.code);
         if (!msg.state.started) setView(null);
       } else if (msg.t === 'view') {
+        code.current = msg.code; // quick-match sends no 'lobby', so learn the code here
+        saveCode(msg.code);
+        lastServerView.current = msg.view; // authoritative
         setView(msg.view);
         setQueued(null); // matched → game started
       } else if (msg.t === 'queued') {
@@ -124,6 +136,7 @@ export function useOnlineGame(): OnlineGame {
         });
       } else if (msg.t === 'error') {
         setError(msg.message);
+        if (lastServerView.current) setView(lastServerView.current); // revert a rejected optimistic move
         if (msg.message === 'table not found') {
           code.current = null;
           saveCode(null);
@@ -174,7 +187,23 @@ export function useOnlineGame(): OnlineGame {
   }, [send]);
   const submit = useCallback(
     (action: unknown) => {
-      if (code.current) send({ t: 'action', playerId: me.current, code: code.current, action });
+      if (!code.current) return;
+      send({ t: 'action', playerId: me.current, code: code.current, action });
+      // Optimistic: apply our own move locally for instant feedback (the card leaves
+      // the hand / lands on the table now, not after a round-trip). The server's next
+      // view is authoritative and replaces this; a rejection reverts (see 'error').
+      setView((v) => {
+        if (!v) return v;
+        try {
+          const next =
+            v.game === 'tarneeb'
+              ? applyAction(v.state as TarneebState, action as TarneebAction)
+              : applyTrixAction(v.state as TrixState, action as TrixAction);
+          return { ...v, state: next, yourTurn: false };
+        } catch {
+          return v; // if it doesn't apply cleanly, just wait for the server
+        }
+      });
     },
     [send],
   );
