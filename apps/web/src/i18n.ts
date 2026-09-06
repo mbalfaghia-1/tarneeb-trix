@@ -149,6 +149,9 @@ const en: Dict = {
   lastTrick: 'Last trick',
   close: 'Close',
   timeSpent: 'Time',
+  cantAdd: 'To add',
+  needKoh: 'choose who took the K♥',
+  needOrder: 'set each finish position',
 };
 
 const ar: Dict = {
@@ -295,6 +298,9 @@ const ar: Dict = {
   lastTrick: 'آخر أكلة',
   close: 'إغلاق',
   timeSpent: 'الوقت',
+  cantAdd: 'لإضافة اليد',
+  needKoh: 'اختر من أخذ شايب الكوبة',
+  needOrder: 'حدد ترتيب خروج كل لاعب',
 };
 
 const DICTS: Record<Lang, Dict> = { en, ar };

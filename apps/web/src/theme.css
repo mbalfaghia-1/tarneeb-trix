@@ -651,6 +651,12 @@ html, body, #root {
 .calc-score { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .calc-totals.trix .calc-score { font-size: 24px; }
 
+.calc-team-label { font-size: 12px; color: var(--text-dim); font-weight: 700; margin-bottom: 6px; }
+.calc-totals.trix .calc-team { padding-top: 8px; }
+.calc-invalid {
+  text-align: center; color: var(--negative); font-size: 13px; font-weight: 600; margin: 2px 0;
+}
+
 .calc-target { display: flex; align-items: center; gap: 8px; color: var(--text-dim); flex-wrap: wrap; }
 .calc-target-in {
   width: 60px; background: var(--surface); color: var(--text);

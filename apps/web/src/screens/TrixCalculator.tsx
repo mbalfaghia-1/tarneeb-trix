@@ -25,6 +25,8 @@ interface Deal {
 interface SavedState {
   names: string[];
   mode: TrixMode;
+  /** Partnership scoring: teams are players 1+3 vs 2+4 (seats 0+2 vs 1+3). */
+  partnership: boolean;
   deals: Deal[];
 }
 
@@ -33,11 +35,14 @@ const KEY = 'trix.calc.v2';
 function load(): SavedState {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as SavedState;
+    if (raw) {
+      const s = JSON.parse(raw) as SavedState;
+      return { ...s, partnership: s.partnership ?? false }; // migrate pre-partnership saves
+    }
   } catch {
     /* ignore */
   }
-  return { names: ['', '', '', ''], mode: 'regular', deals: [] };
+  return { names: ['', '', '', ''], mode: 'regular', partnership: false, deals: [] };
 }
 
 const zeros = (): number[] => [0, 0, 0, 0];
@@ -100,6 +105,19 @@ export function TrixCalculator({ t }: { t: T }) {
     (!needs.tr || sum(tricks) === 13) &&
     orderValid;
 
+  // Human-readable reasons the deal can't be added yet (shown under the Add button).
+  const invalidReasons: string[] = [];
+  if (needs.koh && koh === null) invalidReasons.push(t('needKoh'));
+  if (needs.dia && sum(dia) !== 13) invalidReasons.push(`${t('c_diamonds')} ${sum(dia)}/13`);
+  if (needs.q && sum(queens) !== 4) invalidReasons.push(`${t('c_queens')} ${sum(queens)}/4`);
+  if (needs.tr && sum(tricks) !== 13) invalidReasons.push(`${t('tricks')} ${sum(tricks)}/13`);
+  if (needs.order && !orderValid) invalidReasons.push(t('needOrder'));
+
+  const partnership = state.partnership;
+  // Teams follow the engine: seats 0+2 vs 1+3 → players 1+3 vs 2+4.
+  const teamTotals: [number, number] = [totals[0]! + totals[2]!, totals[1]! + totals[3]!];
+  const teamNames: [string, string] = [`${names[0]} + ${names[2]}`, `${names[1]} + ${names[3]}`];
+
   const buildInputs = (): TrixDealInputs => {
     const inputs: TrixDealInputs = {};
     if (needs.koh) inputs.kohTaker = koh;
@@ -154,6 +172,8 @@ export function TrixCalculator({ t }: { t: T }) {
   const undo = () => setState((s) => ({ ...s, deals: s.deals.slice(0, -1) }));
   const reset = () => setState((s) => ({ ...s, deals: [] }));
   const setMode = (mode: TrixMode) => setState((s) => (s.deals.length === 0 ? { ...s, mode } : s));
+  const setPartnership = (partnership: boolean) =>
+    setState((s) => (s.deals.length === 0 ? { ...s, partnership } : s));
   const setName = (i: number, v: string) =>
     setState((s) => {
       const n = s.names.slice();
@@ -198,9 +218,25 @@ export function TrixCalculator({ t }: { t: T }) {
 
   return (
     <main className="calc">
+      {partnership && (
+        <div className="calc-totals">
+          {([0, 1] as const).map((tm) => (
+            <div
+              key={tm}
+              className={`calc-team ${teamTotals[tm] === Math.max(...teamTotals) && state.deals.length ? 'winner' : ''}`}
+            >
+              <div className="calc-team-label">{teamNames[tm]}</div>
+              <div className="calc-score">{teamTotals[tm]}</div>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="calc-totals trix">
         {SEATS4.map((s) => (
-          <div key={s} className={`calc-team ${totals[s] === best && state.deals.length ? 'winner' : ''}`}>
+          <div
+            key={s}
+            className={`calc-team ${!partnership && totals[s] === best && state.deals.length ? 'winner' : ''}`}
+          >
             <input
               className="calc-name"
               value={state.names[s]}
@@ -226,6 +262,23 @@ export function TrixCalculator({ t }: { t: T }) {
                 onClick={() => setMode(m)}
               >
                 {m === 'regular' ? t('modeRegular') : t('modeComplex')}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="calc-field">
+          <label>{t('partnershipQ')}</label>
+          <div className="seg">
+            {([false, true] as const).map((p) => (
+              <button
+                key={String(p)}
+                type="button"
+                className={partnership === p ? 'on' : ''}
+                disabled={state.deals.length > 0}
+                onClick={() => setPartnership(p)}
+              >
+                {p ? t('partners') : t('alone')}
               </button>
             ))}
           </div>
@@ -431,6 +484,11 @@ export function TrixCalculator({ t }: { t: T }) {
           </div>
         )}
 
+            {!valid && invalidReasons.length > 0 && (
+              <div className="calc-invalid">
+                {t('cantAdd')}: {invalidReasons.join('  ·  ')}
+              </div>
+            )}
             <button type="button" className="primary-btn" onClick={addDeal} disabled={!valid}>
               {t('addDeal')}
             </button>
