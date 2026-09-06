@@ -96,7 +96,7 @@ describe('room: vacate a seat (a human leaves mid-game)', () => {
 
     expect(room.vacateSeat(0)).toBe(true);
     expect(room.occupants[0]!.kind).toBe('bot');
-    expect(room.occupants[0]!.name).toBe('Me'); // name preserved for continuity
+    expect(room.occupants[0]!.name).toBe('Bot 1'); // relabeled so it's clearly a bot now
     expect(room.seatOf('p0')).toBeNull(); // no longer a seated human
     expect(room.isTerminal()).toBe(true); // now all bots → advance() ran it to the end
 

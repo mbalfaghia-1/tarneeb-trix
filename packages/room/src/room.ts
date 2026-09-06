@@ -121,7 +121,7 @@ export class Room<S, A> implements RoomHandle {
   vacateSeat(seat: Seat): boolean {
     const o = this.occ[seat];
     if (!o || o.kind === 'bot') return false;
-    this.occ[seat] = { kind: 'bot', name: o.name }; // keep the name so the table reads continuously
+    this.occ[seat] = { kind: 'bot', name: `Bot ${seat + 1}` }; // relabel so others see it's a bot now
     this.advance(); // if it is now this seat's turn, the bot plays it out immediately
     return true;
   }
