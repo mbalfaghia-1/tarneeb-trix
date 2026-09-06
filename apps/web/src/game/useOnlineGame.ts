@@ -44,6 +44,7 @@ export interface QueuedInfo {
   partnership: boolean;
   size: number;
   needed: number;
+  names: readonly string[];
 }
 
 export interface OnlineGame {
@@ -114,7 +115,13 @@ export function useOnlineGame(): OnlineGame {
         setView(msg.view);
         setQueued(null); // matched → game started
       } else if (msg.t === 'queued') {
-        setQueued({ game: msg.game, partnership: msg.partnership, size: msg.size, needed: msg.needed });
+        setQueued({
+          game: msg.game,
+          partnership: msg.partnership,
+          size: msg.size,
+          needed: msg.needed,
+          names: msg.names,
+        });
       } else if (msg.t === 'error') {
         setError(msg.message);
         if (msg.message === 'table not found') {
@@ -175,7 +182,7 @@ export function useOnlineGame(): OnlineGame {
     (game: GameKind, partnership: boolean, name: string) => {
       setError(null);
       bucket.current = { game, partnership };
-      setQueued({ game, partnership, size: 1, needed: 4 });
+      setQueued({ game, partnership, size: 1, needed: 4, names: [name] });
       send({ t: 'quickmatch', playerId: me.current, name, game, partnership });
     },
     [send],

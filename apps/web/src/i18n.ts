@@ -148,6 +148,7 @@ const en: Dict = {
   cancel: 'Cancel',
   lastTrick: 'Last trick',
   close: 'Close',
+  timeSpent: 'Time',
 };
 
 const ar: Dict = {
@@ -293,6 +294,7 @@ const ar: Dict = {
   cancel: 'إلغاء',
   lastTrick: 'آخر أكلة',
   close: 'إغلاق',
+  timeSpent: 'الوقت',
 };
 
 const DICTS: Record<Lang, Dict> = { en, ar };

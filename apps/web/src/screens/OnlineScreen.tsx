@@ -4,6 +4,7 @@ import { useOnlineGame } from '../game/useOnlineGame';
 import type { T } from '../i18n';
 import { OnlineTarneebBoard } from './OnlineTarneebBoard';
 import { OnlineTrixBoard } from './OnlineTrixBoard';
+import { FindingPlayers } from './FindingPlayers';
 
 const loadName = (): string => {
   try {
@@ -41,28 +42,8 @@ export function OnlineScreen({ t }: { t: T }) {
 
   // --- matchmaking: finding players ---
   if (game.queued) {
-    const q = game.queued;
     return (
-      <main className="online">
-        <div className="online-card">
-          <div className="online-finding">
-            <div className="online-spinner" aria-hidden="true" />
-            <div className="online-finding-title">{t('findingPlayers')}</div>
-            <div className="online-finding-count">
-              {q.size} / {q.needed}
-            </div>
-            <p className="online-hint">{t('findingHint')}</p>
-          </div>
-          <div className="online-actions">
-            <button type="button" className="primary-btn" onClick={game.matchNow}>
-              {t('playNowBots')}
-            </button>
-            <button type="button" className="ghost-btn" onClick={game.cancelMatch}>
-              {t('cancel')}
-            </button>
-          </div>
-        </div>
-      </main>
+      <FindingPlayers queued={game.queued} onPlayNow={game.matchNow} onCancel={game.cancelMatch} t={t} />
     );
   }
 

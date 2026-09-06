@@ -52,10 +52,11 @@ export function createGameServer(port: number): WebSocketServer {
   };
 
   const broadcastQueue = (game: GameKind, partnership: boolean) => {
-    const size = lobby.queueSize(game, partnership);
-    for (const h of lobby.queuedPlayers(game, partnership)) {
+    const players = lobby.queuedPlayers(game, partnership);
+    const names = players.map((h) => h.name);
+    for (const h of players) {
       const sock = sockOf(h.playerId);
-      if (sock) send(sock, { t: 'queued', game, partnership, size, needed: NEEDED });
+      if (sock) send(sock, { t: 'queued', game, partnership, size: players.length, needed: NEEDED, names });
     }
   };
 
