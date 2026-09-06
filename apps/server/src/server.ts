@@ -57,13 +57,22 @@ export function createGameServer(port: number): WebSocketServer {
     );
   }
 
+  // Only send a table's messages to a player whose connection is currently attached
+  // to *this* table. A player can still be seated at an old table they navigated away
+  // from (e.g. tapped Menu, then quick-matched into a new game); without this guard the
+  // old table's turn-timer broadcasts would clobber the new game's view on their socket.
+  const sockAt = (playerId: string, code: string): WebSocket | null => {
+    const c = connOf(playerId);
+    return c && c.code === code ? c.socket : null;
+  };
+
   // Broadcast a table to everyone seated: lobby state pre-start, per-seat view after.
   const broadcast = (code: string) => {
     if (!lobby.hasTable(code)) return;
     if (lobby.isStarted(code)) {
       for (const h of lobby.humansOf(code)) {
         const view = lobby.viewFor(code, h.playerId);
-        const sock = sockOf(h.playerId);
+        const sock = sockAt(h.playerId, code);
         if (view && sock) send(sock, { t: 'view', code, view });
       }
       armTurnTimer(code);
@@ -71,7 +80,7 @@ export function createGameServer(port: number): WebSocketServer {
       clearTurnTimer(code);
       const state = lobby.lobbyState(code);
       for (const h of lobby.humansOf(code)) {
-        const sock = sockOf(h.playerId);
+        const sock = sockAt(h.playerId, code);
         if (sock) send(sock, { t: 'lobby', state });
       }
     }
