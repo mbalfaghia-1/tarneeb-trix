@@ -1,0 +1,20 @@
+# Fly.io config for the Tarneeb/Trix game server (WebSocket).
+# Deploy from the repo root:  fly launch  (then)  fly deploy
+app = "tarneeb-trix-server"
+primary_region = "fra"
+
+[build]
+  dockerfile = "apps/server/Dockerfile"
+
+# WebSocket service. Fly terminates TLS and proxies wss:// on 443 to internal_port.
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Keep one machine always up so live WebSocket games/matchmaking never cold-start.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
