@@ -31,6 +31,7 @@ export function DoubleModal({
   return (
     <div className="modal double-modal">
       <div className="modal-title">{t('double_title')}</div>
+      <div className="double-hint">{t('double_hint')}</div>
       <div className="double-cards">
         {eligible.map((c) => {
           const id = cardId(c);
