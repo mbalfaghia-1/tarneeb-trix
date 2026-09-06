@@ -36,16 +36,13 @@ export function DoubleModal({
         {eligible.map((c) => {
           const id = cardId(c);
           const on = selected.has(id);
+          // A plain wrapper (not a button) around CardView's own button — nesting a
+          // <button> inside a <button> is invalid and swallows taps on touch devices.
           return (
-            <button
-              type="button"
-              key={id}
-              className={`double-card ${on ? 'on' : ''}`}
-              onClick={() => toggle(id)}
-            >
-              <CardView card={c} size="md" />
+            <div key={id} className={`double-card ${on ? 'on' : ''}`}>
+              <CardView card={c} size="md" playable onClick={() => toggle(id)} />
               {on && <span className="dbl-check">✓</span>}
-            </button>
+            </div>
           );
         })}
       </div>
