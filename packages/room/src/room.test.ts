@@ -115,6 +115,38 @@ describe('room: vacate a seat (a human leaves mid-game)', () => {
   });
 });
 
+describe('room: Trix doubling (a freeform action) accepted from a human', () => {
+  it('applies SET_DOUBLE with a chosen card, not just the decline variant', () => {
+    // Find a complex deal where seat 0 (the only human) faces a doubling decision
+    // holding a doubleable card, then submit a real double through the room API.
+    for (let seed = 1; seed < 400; seed++) {
+      const room = createRoom({ game: 'trixComplex', seed }, [{ playerId: 'p0', name: 'Me' }]);
+      let guard = 0;
+      while (!room.isTerminal() && guard++ < 50) {
+        if (room.awaitingSeat() !== 0) break;
+        const st = room.rawState() as TrixState;
+        if (st.phase === 'contract-select') {
+          room.submit('p0', { type: 'CHOOSE_CONTRACT', seat: 0, contract: 'complex' });
+          continue;
+        }
+        if (st.phase === 'doubling') {
+          const dbl = st.hands[0]!.filter((c) => c.rank === 12 || (c.suit === 'H' && c.rank === 13));
+          if (dbl.length === 0) {
+            room.submit('p0', { type: 'SET_DOUBLE', seat: 0, cards: [] });
+            continue;
+          }
+          const before = st.doubled.length;
+          room.submit('p0', { type: 'SET_DOUBLE', seat: 0, cards: [dbl[0]!] });
+          expect((room.rawState() as TrixState).doubled.length).toBe(before + 1);
+          return; // proved a real double was accepted
+        }
+        break; // playing/shedding — this deal gave seat 0 no doubling decision
+      }
+    }
+    throw new Error('no seed produced a seat-0 doubling decision to test');
+  });
+});
+
 describe('room: per-seat redaction never leaks other hands', () => {
   it('a seat view shows only its own cards; others are hidden but counted', () => {
     const room = createRoom({ game: 'tarneeb', seed: 42 }, [

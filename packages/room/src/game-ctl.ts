@@ -26,6 +26,14 @@ export interface GameCtl<S, A> {
   actorOf(a: A): Seat | null;
   redact(s: S, seat: Seat): S;
   handCounts(s: S): number[];
+  /**
+   * True for a "freeform" action whose full parameter space `legalActions` cannot
+   * enumerate — e.g. Trix SET_DOUBLE, which may carry any subset of the doubler's
+   * eligible cards. The room can't exact-match these against the legal list, so it
+   * validates the seat and lets `apply` validate the rest (it throws on anything
+   * illegal). Absent/false → the action is exact-matched against `legalActions`.
+   */
+  isFreeform?(a: unknown): boolean;
 }
 
 const emptyOtherHands = <S extends { hands: readonly (readonly unknown[])[] }>(
@@ -59,5 +67,8 @@ export function makeTrixCtl(
     actorOf: (a) => (a.type === 'NEXT_DEAL' ? null : a.seat),
     redact: (s, seat) => emptyOtherHands(s, seat),
     handCounts: (s) => s.hands.map((h) => h.length),
+    // SET_DOUBLE carries a chosen card subset that legalActions can't enumerate.
+    isFreeform: (a) =>
+      typeof a === 'object' && a !== null && (a as { type?: unknown }).type === 'SET_DOUBLE',
   };
 }

@@ -129,6 +129,19 @@ export class Room<S, A> implements RoomHandle {
   submit(playerId: PlayerId, action: unknown): void {
     const seat = this.seatOf(playerId);
     if (seat === null) throw new Error('player is not seated in this room');
+
+    // Freeform actions (e.g. Trix SET_DOUBLE with a chosen card subset) can't be
+    // exact-matched against the enumerated legal list. Verify it is this seat's turn
+    // and that the action is for this seat, then apply it — apply() itself rejects any
+    // illegal cards / wrong phase by throwing.
+    if (this.ctl.isFreeform?.(action)) {
+      if (this.awaitingSeat() !== seat) throw new Error('not this seat’s turn');
+      if (this.ctl.actorOf(action as A) !== seat) throw new Error('cannot act for another seat');
+      this.state = this.ctl.apply(this.state, action as A);
+      this.advance();
+      return;
+    }
+
     const legal = this.ctl.legalActions(this.state);
     const match = legal.find((a) => deepEqual(a, action));
     if (!match) throw new Error('illegal action or not this seat’s turn');
