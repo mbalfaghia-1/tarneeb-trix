@@ -19,6 +19,7 @@ import { TrixHand } from '../components/trix/TrixHand';
 import { ContractModal } from '../components/trix/ContractModal';
 import { DoubleModal } from '../components/trix/DoubleModal';
 import { LastTrick } from '../components/LastTrick';
+import { LeaveButton } from '../components/LeaveButton';
 import { TrixGameOverlay } from '../components/trix/TrixOverlays';
 
 export function OnlineTrixBoard({
@@ -69,6 +70,8 @@ export function OnlineTrixBoard({
   return (
     <main className="table">
       <TrixScoreboard state={state} t={t} />
+
+      <LeaveButton onLeave={onLeave} t={t} />
 
       {contractShown && state.contract && (
         <div className={`trump-indicator ${redContract ? '' : 'dark'}`} aria-label="contract">

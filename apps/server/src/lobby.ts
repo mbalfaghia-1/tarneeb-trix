@@ -72,10 +72,19 @@ export class Lobby {
     return (t.humans.length - 1) as Seat;
   }
 
-  /** Remove a human before the game starts (compacting seats). No-op after start. */
+  /** A player leaves the table. Before start, their seat is freed and seats compact.
+   *  After start, their seat is handed to a bot (the game continues for everyone else);
+   *  the table is discarded once no humans remain. */
   leave(code: string, playerId: PlayerId): void {
     const t = this.tables.get(code);
-    if (!t || t.room) return;
+    if (!t) return;
+    if (t.room) {
+      const seat = t.room.seatOf(playerId);
+      if (seat !== null) t.room.vacateSeat(seat);
+      t.humans = t.humans.filter((h) => h.playerId !== playerId); // stop broadcasting to them
+      if (t.humans.length === 0) this.tables.delete(code); // all-bot table: nothing to serve
+      return;
+    }
     t.humans = t.humans.filter((h) => h.playerId !== playerId);
     if (t.humans.length === 0) this.tables.delete(code);
     else if (t.hostId === playerId) t.hostId = t.humans[0]!.playerId; // host left → promote

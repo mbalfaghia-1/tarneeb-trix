@@ -88,6 +88,33 @@ describe('room: turn timeout (auto-play a stalled human)', () => {
   });
 });
 
+describe('room: vacate a seat (a human leaves mid-game)', () => {
+  it('turns the seat into a bot, keeps its name, and stops awaiting it', () => {
+    const room = createRoom({ game: 'tarneeb', seed: 11 }, [{ playerId: 'p0', name: 'Me' }]);
+    expect(room.awaitingSeat()).toBe(0); // the human is on turn
+    expect(room.seatOf('p0')).toBe(0);
+
+    expect(room.vacateSeat(0)).toBe(true);
+    expect(room.occupants[0]!.kind).toBe('bot');
+    expect(room.occupants[0]!.name).toBe('Me'); // name preserved for continuity
+    expect(room.seatOf('p0')).toBeNull(); // no longer a seated human
+    expect(room.isTerminal()).toBe(true); // now all bots → advance() ran it to the end
+
+    expect(room.vacateSeat(0)).toBe(false); // already a bot
+  });
+
+  it('lets the remaining humans keep playing after one leaves', () => {
+    const room = createRoom({ game: 'tarneeb', seed: 3 }, [
+      { playerId: 'p0', name: 'A' },
+      { playerId: 'p1', name: 'B' },
+    ]);
+    room.vacateSeat(0); // A leaves; seat 0 is now a bot
+    expect(room.occupants[0]!.kind).toBe('bot');
+    const end = playOut(room, { 1: 'p1' }) as TarneebState; // B alone can finish it
+    expect(end.winner).not.toBeNull();
+  });
+});
+
 describe('room: per-seat redaction never leaks other hands', () => {
   it('a seat view shows only its own cards; others are hidden but counted', () => {
     const room = createRoom({ game: 'tarneeb', seed: 42 }, [

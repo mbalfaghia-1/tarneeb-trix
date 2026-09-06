@@ -17,6 +17,7 @@ import { Hand } from '../components/Hand';
 import { BiddingModal } from '../components/BiddingModal';
 import { TrumpModal } from '../components/TrumpModal';
 import { LastTrick } from '../components/LastTrick';
+import { LeaveButton } from '../components/LeaveButton';
 import { GameOverOverlay } from '../components/Overlays';
 
 export function OnlineTarneebBoard({
@@ -49,6 +50,8 @@ export function OnlineTarneebBoard({
   return (
     <main className="table">
       <Scoreboard state={state} t={t} />
+
+      <LeaveButton onLeave={onLeave} t={t} />
 
       {state.phase === 'playing' && state.trump && (
         <div className="trump-indicator" aria-label="trump">

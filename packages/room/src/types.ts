@@ -54,6 +54,10 @@ export interface RoomHandle {
   /** Auto-play the current turn with the bot brain (for a stalled/disconnected human).
    *  Returns true if a human turn was played, false if it was a bot/terminal. */
   forceCurrentTurn(): boolean;
+  /** Convert a human seat to a bot (they left the game); keeps the seat's name and
+   *  immediately plays it out if it is that seat's turn. Returns true if a human was
+   *  vacated, false if the seat was already a bot / out of range. */
+  vacateSeat(seat: Seat): boolean;
   awaitingSeat(): Seat | null;
   isTerminal(): boolean;
   /** Full un-redacted state — server/debug use only, never send to a client. */

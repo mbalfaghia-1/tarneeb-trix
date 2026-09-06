@@ -38,16 +38,20 @@ function deepEqual(a: unknown, b: unknown): boolean {
  */
 export class Room<S, A> implements RoomHandle {
   readonly config: RoomConfig;
-  readonly occupants: readonly SeatOccupant[];
+  private occ: SeatOccupant[]; // mutable: a seat can be vacated to a bot mid-game
   private readonly ctl: GameCtl<S, A>;
   private state: S;
 
   constructor(config: RoomConfig, ctl: GameCtl<S, A>, occupants: readonly SeatOccupant[], state: S) {
     this.config = config;
     this.ctl = ctl;
-    this.occupants = occupants;
+    this.occ = [...occupants];
     this.state = state;
     this.advance();
+  }
+
+  get occupants(): readonly SeatOccupant[] {
+    return this.occ;
   }
 
   /** Play out every bot turn and seatless auto-transition until a human must act
@@ -111,6 +115,14 @@ export class Room<S, A> implements RoomHandle {
     if (actor === null || this.occupants[actor]!.kind !== 'human') return false;
     this.state = this.ctl.apply(this.state, this.ctl.botAction(this.state));
     this.advance();
+    return true;
+  }
+
+  vacateSeat(seat: Seat): boolean {
+    const o = this.occ[seat];
+    if (!o || o.kind === 'bot') return false;
+    this.occ[seat] = { kind: 'bot', name: o.name }; // keep the name so the table reads continuously
+    this.advance(); // if it is now this seat's turn, the bot plays it out immediately
     return true;
   }
 
