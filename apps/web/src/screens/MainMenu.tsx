@@ -46,6 +46,8 @@ export function MainMenu({
           </button>
         </div>
       </div>
+
+      <div className="build-stamp">v{__BUILD_STAMP__}</div>
     </main>
   );
 }

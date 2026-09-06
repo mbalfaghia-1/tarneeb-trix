@@ -535,6 +535,7 @@ html, body, #root {
 .menu-tools-head { color: var(--accent); font-weight: 800; margin-bottom: 10px; }
 .menu-tools-sub { color: var(--text-dim); font-weight: 500; font-size: 13px; }
 .menu-tools-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.build-stamp { text-align: center; font-size: 11px; color: var(--text-dim); opacity: 0.6; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .tool-btn {
   flex: 1; min-width: 140px;
   background: var(--surface-2); color: var(--text);

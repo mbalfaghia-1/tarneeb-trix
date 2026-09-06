@@ -2,7 +2,15 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// A human-readable build stamp shown in the app, so a tester can confirm at a glance
+// which build their device actually loaded (cache/service-worker issues otherwise hide it).
+const BUILD_STAMP = new Date()
+  .toISOString()
+  .slice(0, 16)
+  .replace('T', ' '); // e.g. "2026-09-06 14:12"
+
 export default defineConfig({
+  define: { __BUILD_STAMP__: JSON.stringify(BUILD_STAMP) },
   plugins: [
     react(),
     VitePWA({
