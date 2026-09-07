@@ -532,6 +532,26 @@ describe('trix partnership coordination', () => {
     expect(chosen(s).suit).not.toBe('D');
   });
 
+  it('never leads its own doubled queen suit in Complex, even holding low cards there', () => {
+    // Complex; we (seat 0) doubled the Q♠ and still hold low spades. Leading spades would
+    // develop the suit against us and let opponents shed high cards — open clubs instead.
+    const s = trixPlay('complex', [C(12, 'S'), C(4, 'S'), C(3, 'S'), C(6, 'C'), C(2, 'C')], [], {
+      doubled: [{ card: C(12, 'S'), by: 0 }],
+    });
+    expect(chosen(s).suit).not.toBe('S');
+  });
+
+  it('leads a heart to force an opponent’s doubled K♥ instead of winning a void suit', () => {
+    // Complex; every opponent is void in spades, so leading a spade wins for sure and
+    // rakes in their discards. We hold a J♥ and an opponent doubled the K♥ — lead the
+    // heart to drive them toward catching their own doubled King.
+    const s = trixPlay('complex', [C(5, 'S'), C(4, 'S'), C(11, 'H')], [], {
+      voids: [[], ['S'], ['S'], ['S']],
+      doubled: [{ card: C(13, 'H'), by: 1 }],
+    });
+    expect(chosen(s).suit).toBe('H');
+  });
+
   it('sheds the A♦ when an opponent doubled the Q♦ and a diamond is led', () => {
     // Queens; the leader (seat 3) doubled the Q♦. A diamond is led and we hold A♦/2♦.
     // Win the (queen-free, free) trick with the A♦ so we are not left holding it to

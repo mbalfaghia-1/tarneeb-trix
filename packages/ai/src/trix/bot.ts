@@ -533,12 +533,31 @@ function leadAvoidance(
     if (mine.length > 0) return highest(mine);
   }
 
+  // FROZEN SUITS: strongly avoid LEADING the suit of one of OUR (or our partner's)
+  // still-live doubled penalty cards. Broaching it develops the suit against us — it lets
+  // opponents shed their high honours (A/K) cheaply and risks us being forced to catch our
+  // own doubled card. We want an OPPONENT to open it instead. This is a preference applied
+  // to every lead path below, but it yields rather than force a guaranteed-self-win void
+  // lead (see the low-card pools). A suit unfreezes once its doubled card is played.
+  const partner = (((seat + 2) % 4) as Seat);
+  const wasPlayed = (card: Card): boolean => {
+    for (const pile of state.captured ?? [])
+      if (pile.some((c) => c.suit === card.suit && c.rank === card.rank)) return true;
+    return state.currentTrick.some((pc) => pc.card.suit === card.suit && pc.card.rank === card.rank);
+  };
+  const protect = new Set<Suit>();
+  for (const d of state.doubled) {
+    if (d.by === seat || (state.partnership && d.by === partner)) {
+      if (!wasPlayed(d.card)) protect.add(d.card.suit);
+    }
+  }
+
   // Partnership: lead a suit our partner is void in (low) so they can shed a
   // penalty onto an opponent, who is likely to win a low lead.
   if (state.partnership) {
-    const partner = (((seat + 2) % 4) as Seat);
     for (const suit of state.voids[partner] ?? []) {
       if ((contract === 'diamonds' || contract === 'complex') && suit === 'D') continue; // don't lead diamonds ourselves
+      if (protect.has(suit)) continue; // never broach our own/partner's frozen doubled suit
       if (allOppsVoid(suit)) continue; // no opponent left to take it — we'd win and catch it ourselves
       // Only lead it if we hold a LOW card there — a high lead would win the
       // trick ourselves and catch our partner's dumped penalty.
@@ -559,18 +578,6 @@ function leadAvoidance(
   // already played, the ace is just another high card and is safe to lead.
   const khLive = (contract === 'kingOfHearts' || contract === 'complex') && !count.accountedFor(13, 'H');
   const isDanger = (c: Card): boolean => khLive && c.suit === 'H' && c.rank === 14;
-
-  // Avoid leading certain suits' cover:
-  //  - OUR OWN doubled penalty (K♥ / a Queen): we want an OPPONENT to lead it so we can
-  //    dump the doubled card onto their trick — leading it ourselves develops the suit
-  //    against us and risks catching our own doubled card.
-  //  - our PARTNER's doubled penalty: leading it burns the low cards protecting theirs.
-  const partner = (((seat + 2) % 4) as Seat);
-  const protect = new Set<Suit>();
-  for (const d of state.doubled) {
-    if (d.by === seat) protect.add(d.card.suit);
-    else if (state.partnership && d.by === partner) protect.add(d.card.suit);
-  }
 
   let candidates = hand.filter((c) => !isPenalty(c) && !isDanger(c));
   if (candidates.length === 0) candidates = [...hand]; // only penalties left — forced
@@ -594,24 +601,57 @@ function leadAvoidance(
       Math.max(...hand.filter((c) => c.suit === suit).map((c) => c.rank));
     const soft = pool0.filter((c) => suitTop(c.suit) < 13);
     const tier = soft.length > 0 ? soft : pool0;
-    const unprotected = tier.filter((c) => !protect.has(c.suit));
-    const pool = unprotected.length > 0 ? unprotected : tier;
+    // Prefer a non-frozen suit (keep our/partner's doubled suit unbroached), but fall
+    // back to a frozen low card rather than give up a followable lead for a void self-win.
+    const nonFrozen = tier.filter((c) => !protect.has(c.suit));
+    const pool = nonFrozen.length > 0 ? nonFrozen : tier;
     const suit = shortestSuit(pool);
     const inSuit = pool.filter((c) => c.suit === suit);
     return lowest(inSuit.length > 0 ? inSuit : pool);
   }
 
-  // Every suit we'd lead is one the opponents are ALL void in — we would win the trick
-  // for sure and rake in whatever they discard. Concede the lead instead: under
-  // Diamonds/Complex give it up with a genuinely low diamond so an opponent takes the
-  // diamond trick, rather than leading a side suit and collecting their discards.
-  if (contract === 'diamonds' || contract === 'complex') {
+  // No SAFE low lead. Concede via a genuinely low diamond under Diamonds/Complex so an
+  // opponent takes the diamond trick — unless diamonds is a frozen suit (our own/partner's
+  // doubled queen sits there), in which case we must not broach it.
+  if ((contract === 'diamonds' || contract === 'complex') && !protect.has('D')) {
     const lowDiamonds = hand.filter((c) => c.suit === 'D' && c.rank <= 9);
     if (lowDiamonds.length > 0) return lowest(lowDiamonds);
   }
 
-  // No concede available — lead our lowest card (least damage).
+  // Otherwise prefer leading a suit an opponent can still FOLLOW — but never an honour
+  // (≤ J) while we hold a low card — over a low card in a suit they are ALL void in
+  // (which we'd win for sure and rake in their discards). Best is a suit where a LIVE
+  // opponent DOUBLED a penalty: leading it (e.g. a heart) drives them toward catching
+  // their own doubled card, instead of us hoarding a forcing card while we win side
+  // tricks. Prefer non-frozen suits, and don't lead an honour if a low card is in hand.
+  const holdsLow = hand.some((c) => c.rank <= 9); // full hand: never lead an honour over any low card
+  const followableAny = candidates.filter(
+    (c) => !allOppsVoid(c.suit) && (!holdsLow || c.rank <= 11),
+  );
+  if (followableAny.length > 0) {
+    const oppDoubledSuits = new Set<Suit>();
+    for (const d of state.doubled) {
+      if (!opponents.includes(d.by)) continue;
+      if (count.accountedFor(d.card.rank, d.card.suit)) continue; // already played
+      oppDoubledSuits.add(d.card.suit);
+    }
+    const attack = followableAny.filter((c) => oppDoubledSuits.has(c.suit));
+    const base = attack.length > 0 ? attack : followableAny;
+    const nonFrozen = base.filter((c) => !protect.has(c.suit));
+    const tier = nonFrozen.length > 0 ? nonFrozen : base;
+    const suit = shortestSuit(tier);
+    const inSuit = tier.filter((c) => c.suit === suit);
+    return lowest(inSuit.length > 0 ? inSuit : tier);
+  }
+
+  // No concede available — lead the least-damaging card, never an honour while we still
+  // hold a low card: our lowest non-penalty low card, else our lowest non-honour, else
+  // (boxed) any low card in hand, else our lowest card.
   if (lowCards.length > 0) return lowest(lowCards);
+  const modest = candidates.filter((c) => c.rank <= 11);
+  if (modest.length > 0) return lowest(modest);
+  const handLow = hand.filter((c) => c.rank <= 9);
+  if (handLow.length > 0) return lowest(handLow);
   return lowest(candidates);
 }
 
