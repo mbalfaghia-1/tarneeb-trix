@@ -815,11 +815,14 @@ html, body, #root {
 }
 
 /* Landscape (tablets / laptops): the four-row shedding board is tall, and on a
-   limited-height wide screen its bottom (diamonds) row overlapped the centered
-   "You" nameplate. Compact the cards, lift the board, and tuck the bottom seat down
-   a little so every suit row stays clear of the seat. */
-@media (orientation: landscape) and (max-height: 1050px) {
-  .shedding-board { top: 38%; gap: 5px; }
+   limited-height wide screen its rows overlapped the seats — the bottom (diamonds)
+   row hit the "You" nameplate, and the top (spades) row rode into the top seat's
+   revealed-2 chip. Compact the cards and centre the board in the band between the
+   seats so every suit row stays clear top and bottom. The threshold is generous so
+   all tablet/laptop heights get the compact, fitted board (only very tall displays,
+   where the full-size board has ample room, keep the default). */
+@media (orientation: landscape) and (max-height: 1300px) {
+  .shedding-board { top: 46%; gap: 5px; }
   .shed-row { min-height: 72px; }
   .shed-card { margin-left: -30px; }
   .shedding-board .card.lg { width: 52px; height: 72px; }
