@@ -5,7 +5,7 @@ import { useTrickReview } from '../game/useTrickReview';
 import type { T } from '../i18n';
 import { TarneebBoard } from '../components/TarneebBoard';
 import { LeaveButton } from '../components/LeaveButton';
-import { GameOverOverlay } from '../components/Overlays';
+import { GameOverOverlay, HandOverOverlay } from '../components/Overlays';
 
 /** How long the server gives a human before auto-playing (mirror of TURN_TIMEOUT_MS). */
 const TURN_LIMIT_MS = 25000;
@@ -46,6 +46,9 @@ export function OnlineTarneebBoard({
       turnTimer={{ limitMs: TURN_LIMIT_MS, token: timerToken }}
     >
       <LeaveButton onLeave={onLeave} t={t} />
+      {state.phase === 'hand-over' && review === null && (
+        <HandOverOverlay state={state} onNext={() => {}} t={t} auto />
+      )}
       {state.phase === 'game-over' && <GameOverOverlay state={state} onNewGame={onLeave} t={t} />}
     </TarneebBoard>
   );

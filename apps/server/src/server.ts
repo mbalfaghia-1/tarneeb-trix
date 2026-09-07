@@ -19,12 +19,20 @@ const MATCH_WAIT_MS = 15000;
 const TURN_TIMEOUT_MS = 25000;
 const NEEDED = 4;
 
+// Pacing (paced/online play): delays between server-driven bot/auto steps so remote play
+// reads like single-player — one card at a time, a beat on a completed trick (matches the
+// client's ~2.2s trick review), and a longer hold on the between-deals summary.
+const BOT_STEP_MS = 650;
+const TRICK_PAUSE_MS = 2200;
+const DEAL_PAUSE_MS = 5000;
+
 export function createGameServer(port: number): WebSocketServer {
   const wss = new WebSocketServer({ port });
   const lobby = new Lobby();
   const conns = new Map<WebSocket, Conn>();
   const matchTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const turnTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const stepTimers = new Map<string, ReturnType<typeof setTimeout>>(); // paced bot/auto stepping
   const bucket = (game: GameKind, partnership: boolean) => `${game}:${partnership ? 1 : 0}`;
 
   const send = (socket: WebSocket, msg: ServerMsg) => {
@@ -43,6 +51,13 @@ export function createGameServer(port: number): WebSocketServer {
       turnTimers.delete(code);
     }
   };
+  const clearStepTimer = (code: string) => {
+    const tm = stepTimers.get(code);
+    if (tm) {
+      clearTimeout(tm);
+      stepTimers.delete(code);
+    }
+  };
   // Arm a per-table turn timer while a human is on turn; on expiry the server auto-plays
   // that turn with the bot brain, so a slow or disconnected player never stalls the game.
   function armTurnTimer(code: string) {
@@ -52,7 +67,7 @@ export function createGameServer(port: number): WebSocketServer {
       code,
       setTimeout(() => {
         turnTimers.delete(code);
-        if (lobby.forceTurn(code)) broadcast(code); // re-broadcasts and re-arms
+        if (lobby.forceTurn(code)) pump(code); // played the stalled turn → resume pacing
       }, TURN_TIMEOUT_MS),
     );
   }
@@ -67,6 +82,7 @@ export function createGameServer(port: number): WebSocketServer {
   };
 
   // Broadcast a table to everyone seated: lobby state pre-start, per-seat view after.
+  // Send-only — pacing/turn timers are driven by pump().
   const broadcast = (code: string) => {
     if (!lobby.hasTable(code)) return;
     if (lobby.isStarted(code)) {
@@ -75,9 +91,7 @@ export function createGameServer(port: number): WebSocketServer {
         const sock = sockAt(h.playerId, code);
         if (view && sock) send(sock, { t: 'view', code, view });
       }
-      armTurnTimer(code);
     } else {
-      clearTurnTimer(code);
       const state = lobby.lobbyState(code);
       for (const h of lobby.humansOf(code)) {
         const sock = sockAt(h.playerId, code);
@@ -85,6 +99,36 @@ export function createGameServer(port: number): WebSocketServer {
       }
     }
   };
+
+  // Paced driver: broadcast the current position, then — for a started table — either wait
+  // on a human (arm the turn timer) or schedule the next bot/seatless-auto step after a
+  // human-readable delay (so remote players see cards played one at a time, a beat to read
+  // a completed trick, and the between-deals summary). Re-entrant-safe: it clears any
+  // pending step/turn timer for the table before deciding again.
+  function pump(code: string) {
+    clearStepTimer(code);
+    clearTurnTimer(code);
+    if (!lobby.hasTable(code)) return;
+    broadcast(code);
+    if (!lobby.isStarted(code)) return;
+    const next = lobby.peekNext(code);
+    if (next === 'human') {
+      armTurnTimer(code);
+      return;
+    }
+    if (next !== 'bot' && next !== 'auto') return; // terminal / nothing to do
+    const hint = lobby.paceHint(code);
+    const delay = hint === 'deal' ? DEAL_PAUSE_MS : hint === 'trick' ? TRICK_PAUSE_MS : BOT_STEP_MS;
+    stepTimers.set(
+      code,
+      setTimeout(() => {
+        stepTimers.delete(code);
+        if (!lobby.hasTable(code)) return;
+        lobby.stepAuto(code); // apply one bot/auto action
+        pump(code); // broadcast + schedule the next
+      }, delay),
+    );
+  }
 
   const broadcastQueue = (game: GameKind, partnership: boolean) => {
     const players = lobby.queuedPlayers(game, partnership);
@@ -133,7 +177,7 @@ export function createGameServer(port: number): WebSocketServer {
             c.queue = null;
           }
         }
-        broadcast(m.code);
+        pump(m.code); // begin paced play (opening bot moves stepped, then first human)
       }
       if (lobby.queueSize(game, partnership) > 0) armTimer(game, partnership);
       else clearTimer(game, partnership);
@@ -181,18 +225,18 @@ export function createGameServer(port: number): WebSocketServer {
       }
       case 'start': {
         lobby.start(msg.code, msg.playerId);
-        broadcast(msg.code);
+        pump(msg.code);
         break;
       }
       case 'action': {
         lobby.submit(msg.code, msg.playerId, msg.action);
-        broadcast(msg.code);
+        pump(msg.code);
         break;
       }
       case 'leave': {
         lobby.leave(msg.code, msg.playerId);
         conn.code = null;
-        broadcast(msg.code);
+        pump(msg.code);
         break;
       }
       case 'quickmatch': {

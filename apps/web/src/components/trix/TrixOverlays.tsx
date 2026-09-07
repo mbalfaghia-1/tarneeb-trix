@@ -26,7 +26,18 @@ function ScoreRows({ state, t, delta }: { state: TrixState; t: T; delta?: readon
   );
 }
 
-export function TrixDealOverlay({ state, onNext, t }: { state: TrixState; onNext: () => void; t: T }) {
+export function TrixDealOverlay({
+  state,
+  onNext,
+  t,
+  auto = false,
+}: {
+  state: TrixState;
+  onNext: () => void;
+  t: T;
+  /** Online: the server advances automatically — show a note instead of a button. */
+  auto?: boolean;
+}) {
   const dr = state.dealResult;
   if (!dr) return null;
   return (
@@ -34,9 +45,13 @@ export function TrixDealOverlay({ state, onNext, t }: { state: TrixState; onNext
       <div className="panel">
         <div className="panel-title">{contractName(t, dr.contract)}</div>
         <ScoreRows state={state} t={t} delta={dr.delta} />
-        <button type="button" className="primary-btn" onClick={onNext}>
-          {t('nextDeal')}
-        </button>
+        {auto ? (
+          <div className="overlay-auto">{t('nextDeal')}…</div>
+        ) : (
+          <button type="button" className="primary-btn" onClick={onNext}>
+            {t('nextDeal')}
+          </button>
+        )}
       </div>
     </div>
   );

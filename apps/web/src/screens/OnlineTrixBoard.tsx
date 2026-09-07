@@ -12,7 +12,7 @@ import { useTrickReview } from '../game/useTrickReview';
 import type { T } from '../i18n';
 import { TrixBoard } from '../components/trix/TrixBoard';
 import { LeaveButton } from '../components/LeaveButton';
-import { TrixGameOverlay } from '../components/trix/TrixOverlays';
+import { TrixDealOverlay, TrixGameOverlay } from '../components/trix/TrixOverlays';
 
 /** How long the server gives a human before auto-playing (mirror of TURN_TIMEOUT_MS). */
 const TURN_LIMIT_MS = 25000;
@@ -61,6 +61,9 @@ export function OnlineTrixBoard({
       turnTimer={{ limitMs: TURN_LIMIT_MS, token: timerToken }}
     >
       <LeaveButton onLeave={onLeave} t={t} />
+      {state.phase === 'deal-over' && review === null && (
+        <TrixDealOverlay state={state} onNext={() => {}} t={t} auto />
+      )}
       {state.phase === 'game-over' && <TrixGameOverlay state={state} onNewGame={onLeave} t={t} />}
     </TrixBoard>
   );

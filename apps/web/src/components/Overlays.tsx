@@ -7,10 +7,13 @@ export function HandOverOverlay({
   state,
   onNext,
   t,
+  auto = false,
 }: {
   state: TarneebState;
   onNext: () => void;
   t: T;
+  /** Online: the server advances automatically — show a note instead of a button. */
+  auto?: boolean;
 }) {
   const lh = state.lastHand;
   if (!lh) return null;
@@ -36,9 +39,13 @@ export function HandOverOverlay({
         <div className="score-line">
           {t('us')} {state.scores[usTeam]} : {state.scores[(1 - usTeam) as 0 | 1]} {t('them')}
         </div>
-        <button type="button" className="primary-btn" onClick={onNext}>
-          {t('nextHand')}
-        </button>
+        {auto ? (
+          <div className="overlay-auto">{t('nextHand')}…</div>
+        ) : (
+          <button type="button" className="primary-btn" onClick={onNext}>
+            {t('nextHand')}
+          </button>
+        )}
       </div>
     </div>
   );

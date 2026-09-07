@@ -16,6 +16,7 @@ import {
   type TrixState,
 } from '@tarneeb/engine';
 import { chooseTarneebAction, chooseTrixAction } from '@tarneeb/ai';
+import type { PaceHint } from './types.js';
 
 export interface GameCtl<S, A> {
   create(seed?: number): S;
@@ -34,6 +35,9 @@ export interface GameCtl<S, A> {
    * illegal). Absent/false → the action is exact-matched against `legalActions`.
    */
   isFreeform?(a: unknown): boolean;
+  /** Pacing hint for the current position (paced/online play): 'deal' at a between-deals
+   *  summary, 'trick' just after a trick completed, else 'normal'. Default 'normal'. */
+  paceHint?(s: S): PaceHint;
 }
 
 const emptyOtherHands = <S extends { hands: readonly (readonly unknown[])[] }>(
@@ -52,6 +56,11 @@ export const tarneebCtl: GameCtl<TarneebState, TarneebAction> = {
   actorOf: (a) => (a.type === 'NEXT_HAND' ? null : a.seat),
   redact: (s, seat) => emptyOtherHands(s, seat),
   handCounts: (s) => s.hands.map((h) => h.length),
+  paceHint: (s) => {
+    if (s.phase === 'hand-over') return 'deal';
+    if (s.phase === 'playing' && s.currentTrick.length === 0 && s.tricks.length > 0) return 'trick';
+    return 'normal';
+  },
 };
 
 export function makeTrixCtl(
@@ -70,5 +79,11 @@ export function makeTrixCtl(
     // SET_DOUBLE carries a chosen card subset that legalActions can't enumerate.
     isFreeform: (a) =>
       typeof a === 'object' && a !== null && (a as { type?: unknown }).type === 'SET_DOUBLE',
+    paceHint: (s): PaceHint => {
+      if (s.phase === 'deal-over') return 'deal';
+      const tricksTaken = s.tricksTaken.reduce((a, b) => a + b, 0);
+      if (s.phase === 'playing' && s.currentTrick.length === 0 && tricksTaken > 0) return 'trick';
+      return 'normal';
+    },
   };
 }

@@ -115,6 +115,44 @@ describe('room: vacate a seat (a human leaves mid-game)', () => {
   });
 });
 
+describe('room: paced mode (online) steps one action at a time', () => {
+  it('does not auto-run on creation and advances via stepAuto', () => {
+    const room = createRoom({ game: 'tarneeb', seed: 7, paced: true }); // all bots
+    expect(room.isTerminal()).toBe(false); // paced → NOT settled at once (unlike unpaced)
+    expect(['bot', 'auto']).toContain(room.peekNext()); // a bot/auto step is pending
+    let steps = 0;
+    while (!room.isTerminal() && steps < 100_000) {
+      if (room.stepAuto() === 'human') break; // no humans here
+      steps++;
+    }
+    expect(room.isTerminal()).toBe(true);
+    expect(steps).toBeGreaterThan(4); // many discrete steps, not a single settle
+  });
+
+  it('unpaced still settles to the end on creation (all-bot table)', () => {
+    const room = createRoom({ game: 'tarneeb', seed: 7 });
+    expect(room.isTerminal()).toBe(true);
+  });
+
+  it('paced: signals a long pause on the between-deals summary and a beat after a trick', () => {
+    const room = createRoom({ game: 'trixComplex', seed: 5, paced: true });
+    let sawDealPause = false;
+    let sawTrickPause = false;
+    for (let i = 0; i < 100_000 && !room.isTerminal(); i++) {
+      const st = room.rawState() as TrixState;
+      if (st.phase === 'deal-over') {
+        expect(room.peekNext()).toBe('auto'); // NEXT_DEAL is seatless → server holds, then advances
+        expect(room.paceHint()).toBe('deal');
+        sawDealPause = true;
+      }
+      if (room.paceHint() === 'trick') sawTrickPause = true;
+      room.stepAuto();
+    }
+    expect(sawDealPause).toBe(true);
+    expect(sawTrickPause).toBe(true);
+  });
+});
+
 describe('room: Trix doubling (a freeform action) accepted from a human', () => {
   it('applies SET_DOUBLE with a chosen card, not just the decline variant', () => {
     // Find a complex deal where seat 0 (the only human) faces a doubling decision

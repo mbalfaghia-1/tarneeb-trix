@@ -400,6 +400,8 @@ html, body, #root {
 .panel-title { font-size: 22px; letter-spacing: 0.5px; color: var(--accent); font-weight: 800; }
 .panel-title.big { font-size: 34px; }
 .panel-msg { font-size: 16px; color: var(--text); }
+/* Auto-advancing summary note (online): the server moves to the next deal on its own. */
+.overlay-auto { font-size: 14px; color: var(--text-dim); margin-top: 4px; font-style: italic; }
 .trump-line { font-size: 40px; }
 .crown { font-size: 40px; }
 .score-line { font-size: 18px; margin: 8px 0 14px; font-variant-numeric: tabular-nums; }

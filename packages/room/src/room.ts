@@ -2,11 +2,13 @@ import type { Seat } from '@tarneeb/engine';
 import { tarneebCtl, makeTrixCtl, type GameCtl } from './game-ctl.js';
 import type {
   HumanEntry,
+  PaceHint,
   PlayerId,
   RedactedView,
   RoomConfig,
   RoomHandle,
   SeatOccupant,
+  StepKind,
 } from './types.js';
 
 const SEATS: readonly Seat[] = [0, 1, 2, 3];
@@ -41,13 +43,15 @@ export class Room<S, A> implements RoomHandle {
   private occ: SeatOccupant[]; // mutable: a seat can be vacated to a bot mid-game
   private readonly ctl: GameCtl<S, A>;
   private state: S;
+  private readonly paced: boolean; // paced (online): don't auto-run bot/auto turns ourselves
 
   constructor(config: RoomConfig, ctl: GameCtl<S, A>, occupants: readonly SeatOccupant[], state: S) {
     this.config = config;
     this.ctl = ctl;
     this.occ = [...occupants];
     this.state = state;
-    this.advance();
+    this.paced = config.paced ?? false;
+    if (!this.paced) this.advance(); // unpaced: settle to the first human at once (tests / single-use)
   }
 
   get occupants(): readonly SeatOccupant[] {
@@ -114,7 +118,7 @@ export class Room<S, A> implements RoomHandle {
     // advance() already plays bot/auto turns, so a stopped state is a human's turn.
     if (actor === null || this.occupants[actor]!.kind !== 'human') return false;
     this.state = this.ctl.apply(this.state, this.ctl.botAction(this.state));
-    this.advance();
+    if (!this.paced) this.advance();
     return true;
   }
 
@@ -122,8 +126,38 @@ export class Room<S, A> implements RoomHandle {
     const o = this.occ[seat];
     if (!o || o.kind === 'bot') return false;
     this.occ[seat] = { kind: 'bot', name: `Bot ${seat + 1}` }; // relabel so others see it's a bot now
-    this.advance(); // if it is now this seat's turn, the bot plays it out immediately
+    if (!this.paced) this.advance(); // unpaced: if it's now this seat's turn, the bot plays on
     return true;
+  }
+
+  // --- paced driver (online) -------------------------------------------------
+
+  peekNext(): StepKind {
+    const legal = this.ctl.legalActions(this.state);
+    if (legal.length === 0) return 'terminal';
+    if (legal.some((a) => this.ctl.actorOf(a) === null)) return 'auto';
+    const actor = this.ctl.actorOf(legal[0]!);
+    return actor !== null && this.occupants[actor]!.kind === 'bot' ? 'bot' : 'human';
+  }
+
+  stepAuto(): StepKind {
+    const legal = this.ctl.legalActions(this.state);
+    if (legal.length === 0) return 'terminal';
+    const auto = legal.find((a) => this.ctl.actorOf(a) === null);
+    if (auto) {
+      this.state = this.ctl.apply(this.state, auto);
+      return 'auto';
+    }
+    const actor = this.ctl.actorOf(legal[0]!);
+    if (actor !== null && this.occupants[actor]!.kind === 'bot') {
+      this.state = this.ctl.apply(this.state, this.ctl.botAction(this.state));
+      return 'bot';
+    }
+    return 'human';
+  }
+
+  paceHint(): PaceHint {
+    return this.ctl.paceHint ? this.ctl.paceHint(this.state) : 'normal';
   }
 
   submit(playerId: PlayerId, action: unknown): void {
@@ -138,7 +172,7 @@ export class Room<S, A> implements RoomHandle {
       if (this.awaitingSeat() !== seat) throw new Error('not this seat’s turn');
       if (this.ctl.actorOf(action as A) !== seat) throw new Error('cannot act for another seat');
       this.state = this.ctl.apply(this.state, action as A);
-      this.advance();
+      if (!this.paced) this.advance();
       return;
     }
 
@@ -147,7 +181,7 @@ export class Room<S, A> implements RoomHandle {
     if (!match) throw new Error('illegal action or not this seat’s turn');
     if (this.ctl.actorOf(match) !== seat) throw new Error('cannot act for another seat');
     this.state = this.ctl.apply(this.state, match);
-    this.advance();
+    if (!this.paced) this.advance();
   }
 
   rawState(): unknown {

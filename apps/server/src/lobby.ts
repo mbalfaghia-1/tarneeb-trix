@@ -8,12 +8,14 @@ import {
   type GameKind,
   type HumanEntry,
   type LobbyState,
+  type PaceHint,
   type PlayerId,
   type PublicSeat,
   type RedactedView,
   type RoomConfig,
   type RoomHandle,
   type Seat,
+  type StepKind,
 } from '@tarneeb/room';
 
 interface Table {
@@ -94,7 +96,7 @@ export class Lobby {
     const t = this.table(code);
     if (t.hostId !== playerId) throw new Error('only the host can start');
     if (t.room) throw new Error('already started');
-    t.room = createRoom(t.config, t.humans);
+    t.room = createRoom({ ...t.config, paced: true }, t.humans); // online → paced (server drives bot steps)
   }
 
   submit(code: string, playerId: PlayerId, action: unknown): void {
@@ -189,7 +191,7 @@ export class Lobby {
       config,
       hostId: humans[0]!.playerId,
       humans,
-      room: createRoom(config, humans),
+      room: createRoom({ ...config, paced: true }, humans), // online → paced
     });
     return { code, humans };
   }
@@ -205,6 +207,23 @@ export class Lobby {
   /** Auto-play the current (stalled) human turn with the bot brain. */
   forceTurn(code: string): boolean {
     return this.tables.get(code)?.room?.forceCurrentTurn() ?? false;
+  }
+
+  // --- paced driver (online) -------------------------------------------------
+
+  /** What the next step would be without applying it ('human'/'bot'/'auto'/'terminal'). */
+  peekNext(code: string): StepKind | null {
+    return this.tables.get(code)?.room?.peekNext() ?? null;
+  }
+
+  /** Apply exactly one pending bot/seatless-auto step. */
+  stepAuto(code: string): StepKind | null {
+    return this.tables.get(code)?.room?.stepAuto() ?? null;
+  }
+
+  /** Pacing hint for the current position (pick the pre-step delay). */
+  paceHint(code: string): PaceHint | null {
+    return this.tables.get(code)?.room?.paceHint() ?? null;
   }
 
   hasTable(code: string): boolean {
