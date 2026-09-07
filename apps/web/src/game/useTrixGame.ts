@@ -15,7 +15,7 @@ import {
 import { chooseTrixAction } from '@tarneeb/ai';
 
 export const TRIX_HUMAN: Seat = 0;
-const TRICK_REVIEW_MS = 1200;
+const TRICK_REVIEW_MS = 2200;
 const DEAL_END_REVIEW_MS = 2600; // the trick that ENDS the deal lingers longer, so the closing cards are readable
 const TURN_LIMIT_MS = 15000;
 const QUICK_TURN_MS = 5000; // forced move / completing a trick — nothing to deliberate

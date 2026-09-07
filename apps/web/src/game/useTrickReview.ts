@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CompletedTrick } from '@tarneeb/engine';
 
-const REVIEW_MS = 1200;
+const REVIEW_MS = 2200;
 
 /**
  * Hold a just-completed trick on screen for a beat so online players can see who took

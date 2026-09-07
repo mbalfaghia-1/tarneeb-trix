@@ -15,7 +15,7 @@ import { chooseTarneebAction } from '@tarneeb/ai';
 export const HUMAN_SEAT: Seat = 0;
 
 /** How long the just-completed trick stays on the table before it clears. */
-const TRICK_REVIEW_MS = 1200;
+const TRICK_REVIEW_MS = 2200;
 /** The trick that ENDS the hand lingers longer, so its closing cards are readable. */
 const DEAL_END_REVIEW_MS = 2600;
 
