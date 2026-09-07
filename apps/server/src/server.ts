@@ -264,9 +264,16 @@ export function createGameServer(port: number): WebSocketServer {
     }
   };
 
+  // Tell everyone how many players are currently connected (a lightweight "N online").
+  const broadcastPresence = () => {
+    const online = conns.size;
+    for (const c of conns.values()) send(c.socket, { t: 'presence', online });
+  };
+
   wss.on('connection', (socket: WebSocket) => {
     const conn: Conn = { socket, playerId: null, code: null, queue: null };
     conns.set(socket, conn);
+    broadcastPresence();
 
     socket.on('message', (data) => {
       let msg: ClientMsg;
@@ -298,6 +305,7 @@ export function createGameServer(port: number): WebSocketServer {
         broadcast(code);
       }
       conns.delete(socket);
+      broadcastPresence();
     });
   });
 

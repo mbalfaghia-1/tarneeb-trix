@@ -561,6 +561,7 @@ html, body, #root {
   padding: 24px 16px; overflow-y: auto;
   background: radial-gradient(ellipse at 50% 20%, var(--table-1) 0%, var(--table-2) 90%);
 }
+.online-presence { text-align: center; font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .online-card {
   width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px;
   background: var(--surface); border: 1px solid var(--border); border-radius: 16px;

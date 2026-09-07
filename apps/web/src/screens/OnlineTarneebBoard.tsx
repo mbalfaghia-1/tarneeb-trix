@@ -2,6 +2,7 @@ import { type Card, type Seat, type Suit, type TarneebState } from '@tarneeb/eng
 import type { RedactedView } from '@tarneeb/room';
 import { rotateTarneeb } from '../game/rotate';
 import { useTrickReview } from '../game/useTrickReview';
+import { useOnlineSounds } from '../lib/useOnlineSounds';
 import type { T } from '../i18n';
 import { TarneebBoard } from '../components/TarneebBoard';
 import { LeaveButton } from '../components/LeaveButton';
@@ -25,6 +26,7 @@ export function OnlineTarneebBoard({
   const state = rotateTarneeb(view.state as TarneebState, seat);
   const review = useTrickReview(state.tricks[state.tricks.length - 1] ?? null);
   const awaitingHuman = view.yourTurn && review === null;
+  useOnlineSounds(state, review, awaitingHuman, 'tarneeb');
 
   const nameFor = (s: Seat) => view.occupants[(s + seat) % 4]?.name ?? '';
   const countFor = (s: Seat) => view.handCounts[(s + seat) % 4] ?? 0;

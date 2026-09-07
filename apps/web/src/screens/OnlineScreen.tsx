@@ -102,6 +102,9 @@ export function OnlineScreen({ t }: { t: T }) {
   return (
     <main className="online">
       <div className="online-card">
+        {game.online > 0 && (
+          <div className="online-presence">🟢 {t('playersOnline', { n: game.online })}</div>
+        )}
         <label className="online-field">
           <span>{t('yourName')}</span>
           <input

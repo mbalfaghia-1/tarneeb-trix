@@ -61,6 +61,7 @@ export interface OnlineGame {
   lobby: LobbyState | null;
   view: RedactedView | null;
   queued: QueuedInfo | null;
+  online: number;
   me: string;
   create: (game: GameKind, partnership: boolean, name: string) => void;
   join: (code: string, name: string) => void;
@@ -84,6 +85,7 @@ export function useOnlineGame(): OnlineGame {
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const [view, setView] = useState<RedactedView | null>(null);
   const [queued, setQueued] = useState<QueuedInfo | null>(null);
+  const [online, setOnline] = useState(0);
 
   useEffect(() => {
     let disposed = false; // ignore events from a socket torn down by StrictMode's re-mount
@@ -126,6 +128,8 @@ export function useOnlineGame(): OnlineGame {
         lastServerView.current = msg.view; // authoritative
         setView(msg.view);
         setQueued(null); // matched → game started
+      } else if (msg.t === 'presence') {
+        setOnline(msg.online);
       } else if (msg.t === 'queued') {
         setQueued({
           game: msg.game,
@@ -233,6 +237,7 @@ export function useOnlineGame(): OnlineGame {
     lobby,
     view,
     queued,
+    online,
     me: me.current,
     create,
     join,

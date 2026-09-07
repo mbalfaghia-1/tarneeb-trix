@@ -9,6 +9,7 @@ import {
 import type { RedactedView } from '@tarneeb/room';
 import { rotateTrix } from '../game/rotate';
 import { useTrickReview } from '../game/useTrickReview';
+import { useOnlineSounds } from '../lib/useOnlineSounds';
 import type { T } from '../i18n';
 import { TrixBoard } from '../components/trix/TrixBoard';
 import { LeaveButton } from '../components/LeaveButton';
@@ -33,6 +34,7 @@ export function OnlineTrixBoard({
   const state = rotateTrix(real, seat);
   const review = useTrickReview(state.lastTrick);
   const awaitingHuman = view.yourTurn && review === null;
+  useOnlineSounds(state, review, awaitingHuman, 'trix');
 
   // Shedding: when the only legal move is to pass (nothing playable), do it automatically
   // so the table never stalls on a stuck human.
