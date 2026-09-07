@@ -520,6 +520,7 @@ html, body, #root {
 .menu-card.trix { background: linear-gradient(160deg, #e0912b, #b25c15); }
 .menu-card.complex { background: linear-gradient(160deg, #b23a48, #6d1f2c); }
 .menu-emoji { font-size: 64px; }
+.menu-record { font-size: 14px; font-weight: 600; opacity: 0.85; margin-top: 6px; font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
   .menu-cards { grid-template-columns: 1fr; }
   .menu-emoji { font-size: 48px; }

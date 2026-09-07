@@ -1,6 +1,7 @@
 import { type TrixMode } from '@tarneeb/engine';
 import { useTrixGame } from '../game/useTrixGame';
 import { useTrixSounds } from '../lib/useTrixSounds';
+import { useRecordOutcome } from '../game/useRecordOutcome';
 import type { T } from '../i18n';
 import { TrixBoard } from '../components/trix/TrixBoard';
 import { TrixDealOverlay, TrixGameOverlay } from '../components/trix/TrixOverlays';
@@ -17,6 +18,7 @@ export function TrixScreen({
   const game = useTrixGame(mode, partnership);
   const { state } = game;
   useTrixSounds(game);
+  useRecordOutcome(mode === 'complex' ? 'trixComplex' : 'trix', state.phase, state.winner);
 
   return (
     <TrixBoard

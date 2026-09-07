@@ -1,5 +1,6 @@
 import { useTarneebGame } from '../game/useTarneebGame';
 import { useGameSounds } from '../lib/useGameSounds';
+import { useRecordOutcome } from '../game/useRecordOutcome';
 import type { T } from '../i18n';
 import { TarneebBoard } from '../components/TarneebBoard';
 import { GameOverOverlay, HandOverOverlay } from '../components/Overlays';
@@ -8,6 +9,7 @@ export function TarneebScreen({ t }: { t: T }) {
   const game = useTarneebGame();
   const { state } = game;
   useGameSounds(game);
+  useRecordOutcome('tarneeb', state.phase, state.winner);
 
   return (
     <TarneebBoard
