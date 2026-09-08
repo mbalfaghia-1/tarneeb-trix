@@ -96,7 +96,7 @@ export class Lobby {
     const t = this.table(code);
     if (t.hostId !== playerId) throw new Error('only the host can start');
     if (t.room) throw new Error('already started');
-    t.room = createRoom({ ...t.config, paced: true }, t.humans); // online → paced (server drives bot steps)
+    t.room = createRoom(t.config, t.humans); // unpaced: bots resolve at once (fast); the client trick-review shows the winner
   }
 
   submit(code: string, playerId: PlayerId, action: unknown): void {

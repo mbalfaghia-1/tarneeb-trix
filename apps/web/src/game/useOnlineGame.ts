@@ -28,18 +28,24 @@ function loadPlayerId(): string {
   }
 }
 
+// The active table code lives in sessionStorage (not localStorage) on purpose: it
+// survives a mid-game reload or socket blip within the same app session (so a genuine
+// reconnect resumes the game), but is cleared when the app is actually closed — so
+// reopening lands on the Play Online lobby instead of rejoining a stale/finished game.
 const CODE_KEY = 'tarneeb.tableCode';
 const loadCode = (): string | null => {
   try {
-    return localStorage.getItem(CODE_KEY);
+    localStorage.removeItem(CODE_KEY); // discard any stale code persisted by older builds
+    return sessionStorage.getItem(CODE_KEY);
   } catch {
     return null;
   }
 };
 const saveCode = (c: string | null) => {
   try {
-    if (c) localStorage.setItem(CODE_KEY, c);
-    else localStorage.removeItem(CODE_KEY);
+    localStorage.removeItem(CODE_KEY); // never persist the table code across app closes
+    if (c) sessionStorage.setItem(CODE_KEY, c);
+    else sessionStorage.removeItem(CODE_KEY);
   } catch {
     /* ignore */
   }
