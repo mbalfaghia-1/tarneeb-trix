@@ -19,12 +19,12 @@ const MATCH_WAIT_MS = 15000;
 const TURN_TIMEOUT_MS = 25000;
 const NEEDED = 4;
 
-// Pacing (paced/online play): delays between server-driven bot/auto steps so remote play
-// reads like single-player — one card at a time, a beat on a completed trick (matches the
-// client's ~2.2s trick review), and a longer hold on the between-deals summary.
-const BOT_STEP_MS = 650;
-const TRICK_PAUSE_MS = 2200;
-const DEAL_PAUSE_MS = 5000;
+// Pacing (paced/online play): delays between server-driven bot/auto steps. Kept snappy —
+// a card lands quickly, a completed trick holds a short beat (aligned with the client's
+// trick-review), and the between-deals summary shows briefly before auto-advancing.
+const BOT_STEP_MS = 350;
+const TRICK_PAUSE_MS = 1300; // matches useTrickReview so the completed trick is readable, no longer
+const DEAL_PAUSE_MS = 2800;
 
 export function createGameServer(port: number): WebSocketServer {
   const wss = new WebSocketServer({ port });
