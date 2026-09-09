@@ -800,9 +800,16 @@ html, body, #root {
 }
 .two-chip.red { color: var(--card-red); }
 
+/* Centre the shedding board in the BAND between the top seat and the bottom seat/hand,
+   rather than at a fixed % of the whole table — a percentage can't stay balanced across
+   heights (it swings between overlapping the top seat and crowding the "You" seat). The
+   top/bottom insets clear each seat; justify-content:center keeps equal gaps above the
+   spades row and below the diamonds row at any height. */
 .shedding-board {
-  position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%);
-  display: flex; flex-direction: column; gap: 8px; z-index: 12; max-width: 92%;
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: 150px; bottom: 250px;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  gap: 8px; z-index: 12; max-width: 92%;
 }
 .shed-row { display: flex; align-items: center; min-height: 106px; justify-content: center; }
 .shed-card { margin-left: -40px; }
@@ -826,7 +833,7 @@ html, body, #root {
    all tablet/laptop heights get the compact, fitted board (only very tall displays,
    where the full-size board has ample room, keep the default). */
 @media (orientation: landscape) and (max-height: 1300px) {
-  .shedding-board { top: 46%; gap: 5px; }
+  .shedding-board { top: 120px; bottom: 245px; gap: 5px; } /* equal clearance top/bottom; bottom seat sits at 175px */
   .shed-row { min-height: 72px; }
   .shed-card { margin-left: -30px; }
   .shedding-board .card.lg { width: 52px; height: 72px; }
