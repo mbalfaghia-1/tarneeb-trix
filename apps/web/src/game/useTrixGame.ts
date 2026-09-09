@@ -41,8 +41,8 @@ function isHumanTurn(s: TrixState): boolean {
 }
 
 function botDelayMs(s: TrixState): number {
-  if (s.phase === 'contract-select') return 750;
-  return s.phase === 'shedding' ? 480 : 640;
+  if (s.phase === 'contract-select') return 950;
+  return s.phase === 'shedding' ? 700 : 900;
 }
 
 export interface TrixGame {

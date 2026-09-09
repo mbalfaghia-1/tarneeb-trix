@@ -43,7 +43,7 @@ function isHumanDecision(s: TarneebState): boolean {
 
 /** How long a bot "thinks" before acting, so play is watchable. */
 function botDelayMs(s: TarneebState): number {
-  return s.phase === 'playing' ? 650 : 550;
+  return s.phase === 'playing' ? 900 : 750;
 }
 
 /** Play out every remaining trick with the bot brain until the hand is scored. Used
