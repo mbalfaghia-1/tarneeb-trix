@@ -134,6 +134,7 @@ html, body, #root {
   flex: 1;
   background: radial-gradient(ellipse at 50% 42%, var(--table-1) 0%, var(--table-2) 82%);
   overflow: hidden;
+  --card-lg-h: 104px;
 }
 
 /* ---- scoreboard ---- */
@@ -141,7 +142,7 @@ html, body, #root {
   position: absolute;
   top: 12px;
   left: 12px;
-  width: 152px;
+  width: clamp(100px, 20vw, 152px);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -175,7 +176,7 @@ html, body, #root {
 
 /* ---- seats ---- */
 .seat { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 15; }
-.seat-bottom { bottom: 200px; left: 50%; transform: translateX(-50%); }
+.seat-bottom { bottom: calc(var(--card-lg-h) + clamp(54px, 12vh, 96px) + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); }
 .seat-top { top: 10px; left: 50%; transform: translateX(-50%); }
 .seat-left { left: 14px; top: 45%; transform: translateY(-50%); }
 .seat-right { right: 14px; top: 45%; transform: translateY(-50%); }
@@ -268,7 +269,7 @@ html, body, #root {
 /* ---- trick ---- */
 .trick-area {
   position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%);
-  width: 220px; height: 220px; z-index: 12;
+  width: clamp(140px, 28vmin, 220px); height: clamp(140px, 28vmin, 220px); z-index: 12;
 }
 .trick-card { position: absolute; }
 .trick-card.at-bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
@@ -291,7 +292,7 @@ html, body, #root {
 
 /* ---- status + turn timer ---- */
 .status-dock {
-  position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: calc(var(--card-lg-h) + 16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 7px; z-index: 16;
 }
 .status-banner {
@@ -300,7 +301,7 @@ html, body, #root {
   box-shadow: 0 3px 10px var(--shadow);
 }
 .turn-timer {
-  width: 190px; height: 8px; border-radius: 6px; overflow: hidden;
+  width: clamp(120px, 24vw, 190px); height: 8px; border-radius: 6px; overflow: hidden;
   background: var(--surface-2); border: 1px solid var(--border);
 }
 .turn-timer-fill {
@@ -454,16 +455,14 @@ html, body, #root {
 }
 
 @media (max-width: 640px) {
-  .seat-bottom { bottom: 170px; }
+  .table { --card-lg-h: 82px; }
   .card.lg { width: 58px; height: 82px; }
   .card.md { width: 50px; height: 72px; }
   .hand-card { margin-left: -24px; }
-  .scoreboard { width: 130px; }
-  .status-dock { bottom: 108px; }
-  .turn-timer { width: 150px; }
 }
 
 @media (max-width: 480px) {
+  .table { --card-lg-h: 66px; }
   .card.lg { width: 46px; height: 66px; }
   .card.md { width: 40px; height: 58px; }
   .card.lg .corner .rank { font-size: 16px; }
@@ -472,14 +471,23 @@ html, body, #root {
   .hand-card { margin-left: -28px; }
   .hand-card.suit-break { margin-left: 4px; }
   .hand-card.is-playable .card { transform: translateY(-7px); }
-  .seat-bottom { bottom: 148px; }
-  .status-dock { bottom: 98px; }
   .bid-grid { gap: 6px; }
   .bid-btn { padding: 16px 0; font-size: 24px; }
   .pass-btn { padding: 16px 0; }
   .trump-btn { font-size: 44px; padding: 16px 0; }
   .modal { min-width: 250px; padding: 14px; }
   .trump-indicator { width: 44px; height: 44px; font-size: 24px; top: 10px; right: 10px; }
+  .seat-top .name { max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+@media (max-width: 360px) {
+  .table { --card-lg-h: 56px; }
+  .card.lg { width: 40px; height: 56px; }
+  .card.lg .corner .rank { font-size: 14px; }
+  .card.lg .corner .suit { font-size: 11px; }
+  .card.lg .pip { font-size: 22px; }
+  .hand-card { margin-left: -30px; }
+  .hand-card.suit-break { margin-left: 2px; }
 }
 
 /* ============================ main menu ============================ */
@@ -807,7 +815,8 @@ html, body, #root {
    spades row and below the diamonds row at any height. */
 .shedding-board {
   position: absolute; left: 50%; transform: translateX(-50%);
-  top: 150px; bottom: 250px;
+  top: clamp(55px, 16vh, 150px);
+  bottom: calc(var(--card-lg-h) + clamp(100px, 18vh, 146px) + env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   gap: 8px; z-index: 12; max-width: 92%;
 }
@@ -833,7 +842,7 @@ html, body, #root {
    all tablet/laptop heights get the compact, fitted board (only very tall displays,
    where the full-size board has ample room, keep the default). */
 @media (orientation: landscape) and (max-height: 1300px) {
-  .shedding-board { top: 120px; bottom: 245px; gap: 5px; } /* equal clearance top/bottom; bottom seat sits at 175px */
+  .shedding-board { gap: 5px; }
   .shed-row { min-height: 72px; }
   .shed-card { margin-left: -30px; }
   .shedding-board .card.lg { width: 52px; height: 72px; }
@@ -841,7 +850,28 @@ html, body, #root {
   .shedding-board .card.lg .corner .suit { font-size: 13px; }
   .shedding-board .card.lg .pip { font-size: 27px; }
   .shed-empty { width: 52px; height: 72px; font-size: 26px; }
-  .seat-bottom { bottom: 175px; }
+}
+
+@media (max-height: 500px) {
+  .table { --card-lg-h: 56px; }
+  .card.lg { width: 42px; height: 56px; }
+  .card.md { width: 36px; height: 50px; }
+  .card.lg .corner .rank { font-size: 14px; }
+  .card.lg .corner .suit { font-size: 11px; }
+  .card.lg .pip { font-size: 22px; }
+  .hand-card { margin-left: -28px; }
+  .hand-card.suit-break { margin-left: 3px; }
+  .trick-area { top: 40%; }
+  .scoreboard { padding: 5px 7px; }
+  .scoreboard .score-row.big { font-size: 20px; }
+  .shedding-board { gap: 2px; }
+  .shedding-board .card.lg { width: 34px; height: 46px; }
+  .shedding-board .card.lg .corner .rank { font-size: 11px; }
+  .shedding-board .card.lg .corner .suit { font-size: 9px; }
+  .shedding-board .card.lg .pip { font-size: 18px; }
+  .shed-row { min-height: 46px; }
+  .shed-card { margin-left: -22px; }
+  .shed-empty { width: 34px; height: 46px; font-size: 16px; }
 }
 
 .contract-modal { min-width: 340px; }
