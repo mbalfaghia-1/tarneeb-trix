@@ -19,11 +19,9 @@ const MATCH_WAIT_MS = 15000;
 const TURN_TIMEOUT_MS = 25000;
 const NEEDED = 4;
 
-// Pacing (paced/online play): delays between server-driven bot/auto steps. Kept snappy —
-// a card lands quickly, a completed trick holds a short beat (aligned with the client's
-// trick-review), and the between-deals summary shows briefly before auto-advancing.
+// Online pacing. Bots resolve at once within a deal (fast); the only server-side pause is
+// the between-deals score summary. BOT_STEP is used only by the dormant fully-paced path.
 const BOT_STEP_MS = 350;
-const TRICK_PAUSE_MS = 1300; // matches useTrickReview so the completed trick is readable, no longer
 const DEAL_PAUSE_MS = 2800;
 
 export function createGameServer(port: number): WebSocketServer {
@@ -100,11 +98,11 @@ export function createGameServer(port: number): WebSocketServer {
     }
   };
 
-  // Paced driver: broadcast the current position, then — for a started table — either wait
-  // on a human (arm the turn timer) or schedule the next bot/seatless-auto step after a
-  // human-readable delay (so remote players see cards played one at a time, a beat to read
-  // a completed trick, and the between-deals summary). Re-entrant-safe: it clears any
-  // pending step/turn timer for the table before deciding again.
+  // Broadcast the current position, then — for a started table — decide what happens next.
+  // In holdDeals mode bot turns within a deal are already settled, so the only wait is a
+  // human's turn (arm the turn timer) or a deal/hand boundary (hold the summary briefly,
+  // then resume the next deal at once). The 'bot' branch only fires for a fully-paced room
+  // (unused today). Re-entrant-safe: clears any pending step/turn timer first.
   function pump(code: string) {
     clearStepTimer(code);
     clearTurnTimer(code);
@@ -116,18 +114,32 @@ export function createGameServer(port: number): WebSocketServer {
       armTurnTimer(code);
       return;
     }
-    if (next !== 'bot' && next !== 'auto') return; // terminal / nothing to do
-    const hint = lobby.paceHint(code);
-    const delay = hint === 'deal' ? DEAL_PAUSE_MS : hint === 'trick' ? TRICK_PAUSE_MS : BOT_STEP_MS;
-    stepTimers.set(
-      code,
-      setTimeout(() => {
-        stepTimers.delete(code);
-        if (!lobby.hasTable(code)) return;
-        lobby.stepAuto(code); // apply one bot/auto action
-        pump(code); // broadcast + schedule the next
-      }, delay),
-    );
+    if (next === 'auto') {
+      // Between-deals summary is now on screen; hold it, then advance past the boundary.
+      stepTimers.set(
+        code,
+        setTimeout(() => {
+          stepTimers.delete(code);
+          if (!lobby.hasTable(code)) return;
+          lobby.resumeDeal(code); // apply NEXT_DEAL/NEXT_HAND + settle the next deal at once
+          pump(code);
+        }, DEAL_PAUSE_MS),
+      );
+      return;
+    }
+    if (next === 'bot') {
+      stepTimers.set(
+        code,
+        setTimeout(() => {
+          stepTimers.delete(code);
+          if (!lobby.hasTable(code)) return;
+          lobby.stepAuto(code);
+          pump(code);
+        }, BOT_STEP_MS),
+      );
+      return;
+    }
+    // terminal — nothing to schedule
   }
 
   const broadcastQueue = (game: GameKind, partnership: boolean) => {

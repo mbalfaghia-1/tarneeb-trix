@@ -22,6 +22,13 @@ export interface RoomConfig {
    * (single-use / tests).
    */
   readonly paced?: boolean;
+  /**
+   * Hold-between-deals mode (online): the room settles bot turns WITHIN a deal at once
+   * (fast play, no per-card delay), but stops at each deal/hand boundary instead of
+   * auto-advancing — so the server can show the score summary briefly, then call
+   * `resumeDeal()`. This is the only online pause; everything inside a deal is instant.
+   */
+  readonly holdDeals?: boolean;
 }
 
 /** What the next step in a paced room would be, without applying it. */
@@ -82,6 +89,10 @@ export interface RoomHandle {
   stepAuto(): StepKind;
   /** Paced driver: pacing hint for the current position (pick the pre-step delay). */
   paceHint(): PaceHint;
+  /** holdDeals mode: apply the pending deal/hand transition and settle the new deal's
+   *  bot turns at once (up to the next human or the next deal boundary). Call after the
+   *  between-deals pause. No-op if not currently at a deal boundary. */
+  resumeDeal(): void;
   awaitingSeat(): Seat | null;
   isTerminal(): boolean;
   /** Full un-redacted state — server/debug use only, never send to a client. */

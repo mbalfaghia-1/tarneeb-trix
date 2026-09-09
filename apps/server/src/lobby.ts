@@ -96,7 +96,7 @@ export class Lobby {
     const t = this.table(code);
     if (t.hostId !== playerId) throw new Error('only the host can start');
     if (t.room) throw new Error('already started');
-    t.room = createRoom(t.config, t.humans); // unpaced: bots resolve at once (fast); the client trick-review shows the winner
+    t.room = createRoom({ ...t.config, holdDeals: true }, t.humans); // fast within a deal; pause only at deal boundaries
   }
 
   submit(code: string, playerId: PlayerId, action: unknown): void {
@@ -191,7 +191,7 @@ export class Lobby {
       config,
       hostId: humans[0]!.playerId,
       humans,
-      room: createRoom({ ...config, paced: true }, humans), // online → paced
+      room: createRoom({ ...config, holdDeals: true }, humans), // fast within a deal; pause only at deal boundaries
     });
     return { code, humans };
   }
@@ -224,6 +224,11 @@ export class Lobby {
   /** Pacing hint for the current position (pick the pre-step delay). */
   paceHint(code: string): PaceHint | null {
     return this.tables.get(code)?.room?.paceHint() ?? null;
+  }
+
+  /** holdDeals: advance past the paused deal boundary and settle the next deal at once. */
+  resumeDeal(code: string): void {
+    this.tables.get(code)?.room?.resumeDeal();
   }
 
   hasTable(code: string): boolean {

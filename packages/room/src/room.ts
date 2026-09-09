@@ -44,6 +44,7 @@ export class Room<S, A> implements RoomHandle {
   private readonly ctl: GameCtl<S, A>;
   private state: S;
   private readonly paced: boolean; // paced (online): don't auto-run bot/auto turns ourselves
+  private readonly holdDeals: boolean; // settle within a deal, but stop at deal boundaries
 
   constructor(config: RoomConfig, ctl: GameCtl<S, A>, occupants: readonly SeatOccupant[], state: S) {
     this.config = config;
@@ -51,15 +52,17 @@ export class Room<S, A> implements RoomHandle {
     this.occ = [...occupants];
     this.state = state;
     this.paced = config.paced ?? false;
-    if (!this.paced) this.advance(); // unpaced: settle to the first human at once (tests / single-use)
+    this.holdDeals = config.holdDeals ?? false;
+    if (!this.paced) this.advance(); // unpaced: settle to the first human (or deal boundary) at once
   }
 
   get occupants(): readonly SeatOccupant[] {
     return this.occ;
   }
 
-  /** Play out every bot turn and seatless auto-transition until a human must act
-   *  (or the game ends). */
+  /** Play out every bot turn and seatless auto-transition until a human must act (or the
+   *  game ends). In holdDeals mode it also stops at a deal/hand boundary (a seatless
+   *  transition) so the caller can pause on the summary before resuming. */
   private advance(): void {
     // Bounded to protect against any non-terminating rule bug.
     for (let guard = 0; guard < 100_000; guard++) {
@@ -67,6 +70,7 @@ export class Room<S, A> implements RoomHandle {
       if (legal.length === 0) return; // terminal
       const auto = legal.find((a) => this.ctl.actorOf(a) === null);
       if (auto) {
+        if (this.holdDeals) return; // stop at the deal boundary; resumeDeal() advances past it
         this.state = this.ctl.apply(this.state, auto);
         continue;
       }
@@ -158,6 +162,14 @@ export class Room<S, A> implements RoomHandle {
 
   paceHint(): PaceHint {
     return this.ctl.paceHint ? this.ctl.paceHint(this.state) : 'normal';
+  }
+
+  resumeDeal(): void {
+    const legal = this.ctl.legalActions(this.state);
+    const auto = legal.find((a) => this.ctl.actorOf(a) === null);
+    if (!auto) return; // not at a deal boundary
+    this.state = this.ctl.apply(this.state, auto); // NEXT_DEAL / NEXT_HAND
+    this.advance(); // settle the new deal's bots at once (holdDeals stops at the next boundary)
   }
 
   submit(playerId: PlayerId, action: unknown): void {

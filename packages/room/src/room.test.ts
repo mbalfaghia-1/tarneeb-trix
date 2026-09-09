@@ -134,6 +134,22 @@ describe('room: paced mode (online) steps one action at a time', () => {
     expect(room.isTerminal()).toBe(true);
   });
 
+  it('holdDeals: settles a deal at once but stops at each boundary; resumeDeal advances', () => {
+    const room = createRoom({ game: 'trixComplex', seed: 5, holdDeals: true }); // all bots
+    // The first deal's bot turns settle on creation, stopping at the deal boundary rather
+    // than running the whole game — so the server can show the summary, then resumeDeal().
+    expect(room.isTerminal()).toBe(false);
+    expect(room.peekNext()).toBe('auto');
+    let boundaries = 0;
+    for (let i = 0; i < 1000 && !room.isTerminal(); i++) {
+      expect(room.peekNext()).toBe('auto'); // all-bot: between deals it only ever pauses at a boundary
+      boundaries++;
+      room.resumeDeal();
+    }
+    expect(room.isTerminal()).toBe(true);
+    expect(boundaries).toBeGreaterThan(1); // several deals, each paused for the summary
+  });
+
   it('paced: signals a long pause on the between-deals summary and a beat after a trick', () => {
     const room = createRoom({ game: 'trixComplex', seed: 5, paced: true });
     let sawDealPause = false;
