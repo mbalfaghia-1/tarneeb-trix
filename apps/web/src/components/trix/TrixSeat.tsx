@@ -10,6 +10,7 @@ export function TrixSeat({
   justWon = false,
   name,
   count,
+  turnTimer,
 }: {
   seat: Seat;
   state: TrixState;
@@ -19,6 +20,8 @@ export function TrixSeat({
   name?: string;
   /** Card count override (online views redact other hands). */
   count?: number;
+  /** Countdown timer (only passed for the human seat when awaiting). */
+  turnTimer?: { limitMs: number; token: string };
 }) {
   const pos = posOf(seat, 0 as Seat);
   const isTurn =
@@ -63,7 +66,19 @@ export function TrixSeat({
         </div>
       )}
       <div className={`nameplate ${isTurn ? 'active' : ''}`}>
-        <span className="avatar">{label.charAt(0)}</span>
+        <div className="avatar-wrap">
+          <span className="avatar">{label.charAt(0)}</span>
+          {isTurn && (
+            <svg className="turn-ring" viewBox="0 0 36 36" key={turnTimer?.token ?? 'bot'}>
+              <circle className="turn-ring-track" cx="18" cy="18" r="15" />
+              <circle
+                className={`turn-ring-fill ${turnTimer ? 'countdown' : 'bot-ring'}`}
+                cx="18" cy="18" r="15"
+                style={turnTimer ? { animationDuration: `${turnTimer.limitMs}ms` } : undefined}
+              />
+            </svg>
+          )}
+        </div>
         <span className="name">{label}</span>
         {isKing && <span className="badge-declarer">👑</span>}
       </div>

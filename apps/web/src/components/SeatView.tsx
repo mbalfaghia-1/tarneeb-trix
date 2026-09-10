@@ -33,6 +33,7 @@ export function SeatView({
   justWon = false,
   name,
   count,
+  turnTimer,
 }: {
   seat: Seat;
   state: TarneebState;
@@ -42,6 +43,8 @@ export function SeatView({
   name?: string;
   /** Card count override (online views redact other hands, so pass the real size). */
   count?: number;
+  /** Countdown timer (only passed for the human seat when awaiting). */
+  turnTimer?: { limitMs: number; token: string };
 }) {
   const pos = posOf(seat, HUMAN_SEAT);
   const isTurn = state.turn === seat && state.phase !== 'hand-over' && state.phase !== 'game-over';
@@ -61,7 +64,19 @@ export function SeatView({
         </div>
       )}
       <div className={`nameplate ${isTurn ? 'active' : ''}`}>
-        <span className="avatar">{label.charAt(0)}</span>
+        <div className="avatar-wrap">
+          <span className="avatar">{label.charAt(0)}</span>
+          {isTurn && (
+            <svg className="turn-ring" viewBox="0 0 36 36" key={turnTimer?.token ?? 'bot'}>
+              <circle className="turn-ring-track" cx="18" cy="18" r="15" />
+              <circle
+                className={`turn-ring-fill ${turnTimer ? 'countdown' : 'bot-ring'}`}
+                cx="18" cy="18" r="15"
+                style={turnTimer ? { animationDuration: `${turnTimer.limitMs}ms` } : undefined}
+              />
+            </svg>
+          )}
+        </div>
         <span className="name">{label}</span>
         {isDeclarer && <span className="badge-declarer">★</span>}
       </div>

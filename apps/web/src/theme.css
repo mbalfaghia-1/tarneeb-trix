@@ -190,11 +190,38 @@ html, body, #root {
   box-shadow: 0 3px 10px var(--shadow);
 }
 .nameplate.active { border-color: var(--accent); }
+.avatar-wrap { position: relative; flex-shrink: 0; width: 28px; height: 28px; }
 .avatar {
   width: 28px; height: 28px; border-radius: 50%;
   background: linear-gradient(135deg, var(--surface-3), var(--surface-2));
   border: 1px solid var(--border);
   display: grid; place-items: center; font-weight: 700; font-size: 14px; color: var(--text);
+}
+.turn-ring {
+  position: absolute; top: -4px; left: -4px; width: 36px; height: 36px;
+  transform: rotate(-90deg); pointer-events: none;
+  filter: drop-shadow(0 0 3px var(--accent));
+}
+.turn-ring-track { fill: none; stroke: var(--border); stroke-width: 3; opacity: 0.35; }
+.turn-ring-fill {
+  fill: none; stroke-width: 3; stroke-linecap: round;
+  stroke-dasharray: 94.25; stroke-dashoffset: 0;
+}
+.turn-ring-fill.countdown {
+  animation: ring-drain linear forwards;
+}
+.turn-ring-fill.bot-ring {
+  stroke: var(--accent);
+  animation: ring-pulse-opacity 1.4s ease-in-out infinite;
+}
+@keyframes ring-drain {
+  from { stroke-dashoffset: 0; stroke: var(--positive); }
+  50% { stroke: var(--accent); }
+  to { stroke-dashoffset: 94.25; stroke: var(--negative); }
+}
+@keyframes ring-pulse-opacity {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 .name { font-size: 13px; }
 .badge-declarer { color: var(--accent); }
@@ -450,7 +477,7 @@ html, body, #root {
 .seat.won .nameplate { border-color: var(--positive); animation: won-pulse 0.6s ease 2; }
 
 @media (prefers-reduced-motion: reduce) {
-  .trick-card .card, .hand-card, .nameplate.active, .seat.won .nameplate { animation: none; }
+  .trick-card .card, .hand-card, .nameplate.active, .seat.won .nameplate, .turn-ring-fill { animation: none; }
   .hand-card.is-playable .card { transform: translateY(-9px); }
 }
 

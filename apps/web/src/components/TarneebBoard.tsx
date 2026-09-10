@@ -67,10 +67,6 @@ export function TarneebBoard({
   const humanTrump = awaitingHuman && state.phase === 'trump-select';
 
   let status = '';
-  if (state.phase === 'game-over') status = '';
-  else if (awaitingHuman) status = t('yourTurn');
-  else if (state.phase === 'bidding') status = t('biddingFor', { name: label(state.turn) });
-  else status = t('waitingFor', { name: label(state.turn) });
 
   return (
     <main className="table">
@@ -93,6 +89,7 @@ export function TarneebBoard({
           name={nameFor?.(s)}
           count={countFor?.(s)}
           justWon={reviewTrick?.winner === s}
+          turnTimer={s === 0 && awaitingHuman && turnTimer ? turnTimer : undefined}
         />
       ))}
 
@@ -104,11 +101,6 @@ export function TarneebBoard({
           <button type="button" className="pass-btn small end-btn" onClick={claim.onClaim}>
             {t('endRound')}
           </button>
-        )}
-        {turnTimer && awaitingHuman && (
-          <div className="turn-timer" key={turnTimer.token}>
-            <div className="turn-timer-fill" style={{ animationDuration: `${turnTimer.limitMs}ms` }} />
-          </div>
         )}
       </div>
 

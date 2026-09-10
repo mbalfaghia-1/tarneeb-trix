@@ -68,17 +68,8 @@ export function TrixBoard({
 
   let status = '';
   if (state.phase === 'deal-over' || state.phase === 'game-over') status = '';
-  else if (awaitingHuman)
-    status =
-      state.phase === 'contract-select'
-        ? t('chooseContract')
-        : state.phase === 'doubling'
-          ? t('double_title')
-          : t('yourTurn');
-  else if (state.phase === 'contract-select') status = t('waitingFor', { name: label(state.king) });
-  else if (state.phase === 'doubling') status = t('doublingWait', { name: label(state.turn) });
-  else if (state.turn === 0) status = ''; // our own turn but auto-resolving (e.g. forced pass)
-  else status = t('waitingFor', { name: label(state.turn) });
+  else if (awaitingHuman && state.phase === 'contract-select') status = t('chooseContract');
+  else if (awaitingHuman && state.phase === 'doubling') status = t('double_title');
 
   return (
     <main className="table">
@@ -103,6 +94,7 @@ export function TrixBoard({
           name={nameFor?.(s)}
           count={countFor?.(s)}
           justWon={reviewTrick?.winner === s}
+          turnTimer={s === 0 && awaitingHuman && turnTimer ? turnTimer : undefined}
         />
       ))}
 
@@ -114,11 +106,6 @@ export function TrixBoard({
 
       <div className="status-dock">
         {status && <div className="status-banner">{status}</div>}
-        {turnTimer && awaitingHuman && (
-          <div className="turn-timer" key={turnTimer.token}>
-            <div className="turn-timer-fill" style={{ animationDuration: `${turnTimer.limitMs}ms` }} />
-          </div>
-        )}
       </div>
 
       <div className="hand-dock">
