@@ -139,7 +139,9 @@ describe('play tactics', () => {
     expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(14, 'D'));
   });
 
-  it('T2: conserves (no wasted middle card) when it cannot beat the threat', () => {
+  it('T2: 3rd hand high — plays highest even without the master', () => {
+    // Partner (seat 2) leads 5♦, opponent (seat 3) plays 4♦. We (seat 0) are 3rd
+    // with 8♦/3♦. Play 8♦ (3rd hand high) to try to secure against the 4th opponent.
     const state = playState({
       turn: 0,
       trump: 'S',
@@ -147,7 +149,7 @@ describe('play tactics', () => {
       leader: 2,
       currentTrick: playedCards([2, C(5, 'D')], [3, C(4, 'D')]),
     });
-    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(3, 'D'));
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(8, 'D'));
   });
 
   it('T3: third hand secures with the master under threat, not a middle card', () => {
@@ -512,9 +514,8 @@ describe('tarneeb play hardening (stress)', () => {
           const partnerWinning = teamOf(winnerBefore) === teamOf(seat) && winnerBefore !== seat;
           const newWinner = trickWinner([...s.currentTrick, { seat, card: action.card }], trump);
 
-          if (partnerWinning && newWinner === seat && action.card.suit === led) {
-            // We overtook our partner with a led-suit card. A later opponent holding
-            // a higher led card can still top us — that means we did NOT play a master.
+          if (partnerWinning && newWinner === seat && action.card.suit === led && s.currentTrick.length !== 2) {
+            // Skip 3rd hand (trick.length === 2): playing high is intentional.
             const remaining = 3 - s.currentTrick.length;
             let laterOppHigher = false;
             let sAfter = seat;
@@ -525,7 +526,6 @@ describe('tarneeb play hardening (stress)', () => {
                 laterOppHigher = true;
               }
             }
-            // Could we instead have played a card that does NOT overtake our partner?
             const couldDuck = legalPlays(s.hands[seat]!, s.currentTrick).some(
               (c) => trickWinner([...s.currentTrick, { seat, card: c }], trump) !== seat,
             );

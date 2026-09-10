@@ -347,10 +347,20 @@ function chooseFollow(state: TarneebState, seat: Seat, k: Knowledge, legal: read
   const winners = legal.filter((c) => cardBeats(c, winning, trump, led));
 
   if (partnerWins) {
-    // T2: overtake our own side only to SECURE the trick against a real threat —
-    // and then with a card that actually beats the THREAT (a master beating every
-    // outstanding card), not merely the current card. A middle card a later
-    // opponent can still top would be wasted, so otherwise conserve.
+    if (lastToPlay) {
+      return discardLow(hand, legal, led, trump);
+    }
+    // T2: 3rd hand, partner winning — an opponent plays last and could overtake.
+    // Play our highest card of the led suit to secure, UNLESS partner already
+    // holds the master (nothing outstanding beats them — ducking is safe).
+    if (trick.length === 2 && canFollow) {
+      const topOut = k.highestOutstanding(led);
+      const partnerSecure = topOut === null || winning.rank > topOut;
+      if (!partnerSecure) {
+        return highest(legal.filter((c) => c.suit === led));
+      }
+    }
+    // Partner is master (safe) or 2nd hand: conservative play.
     if (threat && !ruffThreatBehind(state, seat, k, led)) {
       const top = k.highestOutstanding(led);
       const masters = legal.filter((c) => c.suit === led && (top === null || c.rank > top));
