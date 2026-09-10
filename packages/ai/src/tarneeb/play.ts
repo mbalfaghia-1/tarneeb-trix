@@ -379,22 +379,15 @@ function chooseFollow(state: TarneebState, seat: Seat, k: Knowledge, legal: read
         // two highest cards still out in the suit (e.g. A-K).
         return supportedTopWinner(hand, led, k) ?? lowest(legal);
       }
-      // T3: third hand HIGH. An opponent is winning and the fourth hand plays last,
-      // so we play high to try to win the trick for our side:
-      //   • No threat behind → the cheapest winner already holds up.
-      //   • A master (beats every outstanding card) → play it, cheapest such.
-      //   • Otherwise contest with the HIGHEST winner — ducking would simply concede
-      //     the trick, since an opponent is already winning.
-      //   • Exception: if a later opponent can RUFF, no led-suit card can win, so
-      //     keep the honour and duck low.
-      if (!threat) return lowest(winners);
+      // T3: third hand HIGH — always commit the highest winner. The 4th
+      // player (opponent) plays last, so playing anything less risks losing
+      // the trick to a card we could have beaten.
+      // Exception: if a later opponent can ruff, no led-suit card secures
+      // the trick, so keep our honour and duck low.
       if (ruffThreatBehind(state, seat, k, led)) {
         const losers = legal.filter((c) => c.rank < winning.rank);
         return losers.length > 0 ? highest(losers) : lowest(legal);
       }
-      const top = k.highestOutstanding(led);
-      const masters = winners.filter((c) => top === null || c.rank > top);
-      if (masters.length > 0) return lowest(masters);
       return highest(winners);
     }
     // Void → ruff with the cheapest trump that wins; never waste a high trump.
