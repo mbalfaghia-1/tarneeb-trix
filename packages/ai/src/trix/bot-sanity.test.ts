@@ -82,13 +82,31 @@ function runDeal(seed: number, mode: TrixMode, contract: TrixContract, out: stri
       // Guard B — led into a suit no opponent can follow (a certain self-win that rakes
       // in their discards) when it held a genuinely better lead: a LOW, non-penalty card
       // in a suit an opponent CAN follow, which would lose the trick to them instead.
+      // A frozen-suit card (our/partner's still-live doubled penalty suit) is NOT a
+      // better alternative — leading it risks the doubled card (-50 to -150), worse
+      // than a self-win (-15 + dumps).
       if (s.currentTrick.length === 0) {
         const opps = opponentsOf(seat);
         const oppsHave = (suit: Card['suit']) =>
           opps.some((o) => (s.hands[o] ?? []).some((c) => c.suit === suit));
         if (!oppsHave(action.card.suit)) {
+          const partner = ((seat + 2) % 4) as Seat;
+          const frozenSuits = new Set<Card['suit']>();
+          for (const d of s.doubled) {
+            if (d.by === seat || (s.partnership && d.by === partner)) {
+              const played = (s.captured ?? []).some((pile) =>
+                pile.some((c) => c.suit === d.card.suit && c.rank === d.card.rank),
+              );
+              if (!played) frozenSuits.add(d.card.suit);
+            }
+          }
           const betterAlt = hand.some(
-            (c) => c.rank <= 9 && !isPenalty(c, contract) && c.suit !== action.card.suit && oppsHave(c.suit),
+            (c) =>
+              c.rank <= 9 &&
+              !isPenalty(c, contract) &&
+              c.suit !== action.card.suit &&
+              oppsHave(c.suit) &&
+              !frozenSuits.has(c.suit),
           );
           if (betterAlt) {
             out.push(`${tag}: seat ${seat} led ${show(action.card)} into a no-follow suit with a low follow-able alternative`);

@@ -236,7 +236,14 @@ function pickAvoidanceCard(state: TrixState): Card {
       // rather than hoarding a low card we don't need.
       return duckBelow(legal, winTop, contract);
     }
-    return safeDiscard(legal, contract); // void → dump a high, harmless card (can't overtake in no-trump)
+    // void → shed strategically. In Complex, dump diamonds to get diamond-void:
+    // eating -10 (or Q♦ at -25) now unlocks dumping K♥ (-150) on a future diamond
+    // trick, and signals our partner that we're out of diamonds.
+    if (contract === 'complex' || contract === 'diamonds') {
+      const diamonds = legal.filter((c) => c.suit === 'D');
+      if (diamonds.length > 0) return highest(diamonds);
+    }
+    return safeDiscard(legal, contract);
   }
 
   if (canFollow) {
@@ -533,12 +540,12 @@ function leadAvoidance(
     if (mine.length > 0) return highest(mine);
   }
 
-  // FROZEN SUITS: strongly avoid LEADING the suit of one of OUR (or our partner's)
-  // still-live doubled penalty cards. Broaching it develops the suit against us — it lets
-  // opponents shed their high honours (A/K) cheaply and risks us being forced to catch our
-  // own doubled card. We want an OPPONENT to open it instead. This is a preference applied
-  // to every lead path below, but it yields rather than force a guaranteed-self-win void
-  // lead (see the low-card pools). A suit unfreezes once its doubled card is played.
+  // FROZEN SUITS: NEVER lead the suit of one of OUR (or our partner's) still-live
+  // doubled penalty cards. Broaching it develops the suit against us — it lets opponents
+  // shed their high honours cheaply and risks catching our own doubled card. We want an
+  // OPPONENT to open it instead. Applied as a hard filter on candidates below — yields
+  // only when literally every card in hand is frozen. Unfreezes once the doubled card
+  // is played.
   const partner = (((seat + 2) % 4) as Seat);
   const wasPlayed = (card: Card): boolean => {
     for (const pile of state.captured ?? [])
@@ -582,6 +589,13 @@ function leadAvoidance(
   let candidates = hand.filter((c) => !isPenalty(c) && !isDanger(c));
   if (candidates.length === 0) candidates = [...hand]; // only penalties left — forced
 
+  // Hard frozen-suit filter: never lead our/partner's doubled suit unless every
+  // single candidate is frozen (absolute last resort).
+  if (protect.size > 0) {
+    const unfrozen = candidates.filter((c) => !protect.has(c.suit));
+    if (unfrozen.length > 0) candidates = unfrozen;
+  }
+
   // Lead a genuinely LOW card so we LOSE the trick to an opponent (winning collects
   // penalties, and once anyone is void they dump on us). Only lead a low card a non-void
   // opponent can still take; among those prefer suits outside a partner's doubled penalty,
@@ -600,11 +614,7 @@ function leadAvoidance(
     const suitTop = (suit: Suit) =>
       Math.max(...hand.filter((c) => c.suit === suit).map((c) => c.rank));
     const soft = pool0.filter((c) => suitTop(c.suit) < 13);
-    const tier = soft.length > 0 ? soft : pool0;
-    // Prefer a non-frozen suit (keep our/partner's doubled suit unbroached), but fall
-    // back to a frozen low card rather than give up a followable lead for a void self-win.
-    const nonFrozen = tier.filter((c) => !protect.has(c.suit));
-    const pool = nonFrozen.length > 0 ? nonFrozen : tier;
+    const pool = soft.length > 0 ? soft : pool0;
     const suit = shortestSuit(pool);
     const inSuit = pool.filter((c) => c.suit === suit);
     return lowest(inSuit.length > 0 ? inSuit : pool);
@@ -637,11 +647,9 @@ function leadAvoidance(
     }
     const attack = followableAny.filter((c) => oppDoubledSuits.has(c.suit));
     const base = attack.length > 0 ? attack : followableAny;
-    const nonFrozen = base.filter((c) => !protect.has(c.suit));
-    const tier = nonFrozen.length > 0 ? nonFrozen : base;
-    const suit = shortestSuit(tier);
-    const inSuit = tier.filter((c) => c.suit === suit);
-    return lowest(inSuit.length > 0 ? inSuit : tier);
+    const suit = shortestSuit(base);
+    const inSuit = base.filter((c) => c.suit === suit);
+    return lowest(inSuit.length > 0 ? inSuit : base);
   }
 
   // No concede available — lead the least-damaging card, never an honour while we still
