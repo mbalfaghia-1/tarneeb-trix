@@ -211,7 +211,9 @@ export function TrixCalculator({ t }: { t: T }) {
                 type="number"
                 min={0}
                 max={cellMax}
-                value={vals[s]}
+                value={vals[s] || ''}
+                placeholder="0"
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => {
                   const next = vals.slice();
                   next[s] = Math.max(0, Math.min(cellMax, Number(e.target.value) || 0));
