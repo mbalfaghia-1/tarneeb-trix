@@ -157,11 +157,20 @@ describe('trix avoidance: take harmless tricks, duck penalised ones', () => {
     expect(chosen(s)).toEqual(C(13, 'C'));
   });
 
-  it('diamonds: does NOT take a diamond-free trick when a later player could still dump a diamond', () => {
-    // Same trick but no known voids → a later void-in-clubs player could discard a
-    // diamond onto our win, so duck with the low club instead of grabbing it.
+  it('diamonds: takes a diamond-free trick early when no voids are known', () => {
+    // No known voids → nobody is proven able to dump a diamond, so play aggressively
+    // and take the harmless trick with K♣ to shed a high card.
     expect(
       chosen(trixPlay('diamonds', [C(13, 'C'), C(5, 'C'), C(2, 'D')], [[3, C(9, 'C')]])),
+    ).toEqual(C(13, 'C'));
+  });
+
+  it('diamonds: ducks when a later player is known void in the led suit', () => {
+    // Seat 1 is void in clubs → could dump a diamond on our win; duck.
+    expect(
+      chosen(trixPlay('diamonds', [C(13, 'C'), C(5, 'C'), C(2, 'D')], [[3, C(9, 'C')]], {
+        voids: [[], ['C'], [], []],
+      })),
     ).toEqual(C(5, 'C'));
   });
 

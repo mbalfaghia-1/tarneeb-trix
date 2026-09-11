@@ -370,18 +370,23 @@ function safeToTake(
 ): boolean {
   if (contract === 'collection' || contract === 'complex') return false; // every trick costs
   if (trickHasPenalty(state, contract)) return false;
+
+  const led = state.currentTrick[0]!.card.suit;
+  const laterVoidInLed = (seat: Seat): boolean =>
+    laterPlayers(state, seat).some((o) => (state.voids[o] ?? []).includes(led));
+
   switch (contract) {
     case 'diamonds':
-      return (
-        lastToPlay ||
-        count.outstanding.D === 0 ||
-        laterPlayers(state, state.turn).every((o) => (state.voids[o] ?? []).includes('D'))
-      );
+      // A later player can dump a diamond only if void in the led suit.
+      // Safe when nobody behind is known-void — aggressive early, cautious as voids reveal.
+      return lastToPlay || count.outstanding.D === 0 || !laterVoidInLed(state.turn);
     case 'kingOfHearts':
-      return lastToPlay || count.accountedFor(13, 'H'); // K♥ can't be added if it's ours/played
+      if (lastToPlay || count.accountedFor(13, 'H')) return true;
+      // K♥ can be dumped only by a player void in the led suit. If led is hearts,
+      // a follower could play K♥ normally — stay cautious in that suit.
+      return led !== 'H' && !laterVoidInLed(state.turn);
     case 'queens': {
       if (lastToPlay) return true;
-      const led = state.currentTrick[0]!.card.suit;
       // A later player who DOUBLED the led-suit queen will dump it UNDER our winning
       // card (they pocket +25, we eat −50), so never win the trick into that.
       const doubledQueenBehind = state.doubled.some(
