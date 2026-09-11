@@ -176,7 +176,7 @@ html, body, #root {
 
 /* ---- seats ---- */
 .seat { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 15; }
-.seat-bottom { bottom: calc(var(--card-lg-h) + clamp(54px, 12vh, 96px) + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); }
+.seat-bottom { bottom: calc(var(--card-lg-h) + clamp(24px, 4vh, 44px) + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); }
 .seat-top { top: 10px; left: 50%; transform: translateX(-50%); }
 .seat-left { left: 14px; top: 45%; transform: translateY(-50%); }
 .seat-right { right: 14px; top: 45%; transform: translateY(-50%); }
@@ -327,16 +327,6 @@ html, body, #root {
   padding: 4px 14px; border-radius: 14px; font-size: 14px;
   box-shadow: 0 3px 10px var(--shadow);
 }
-.turn-timer {
-  width: clamp(120px, 24vw, 190px); height: 8px; border-radius: 6px; overflow: hidden;
-  background: var(--surface-2); border: 1px solid var(--border);
-}
-.turn-timer-fill {
-  height: 100%; width: 100%; transform-origin: left;
-  background: linear-gradient(90deg, var(--positive) 0%, var(--accent) 55%, var(--negative) 100%);
-  animation-name: timer-shrink; animation-timing-function: linear; animation-fill-mode: forwards;
-}
-@keyframes timer-shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
 /* ---- trump / contract indicator ---- */
 .trump-indicator {
