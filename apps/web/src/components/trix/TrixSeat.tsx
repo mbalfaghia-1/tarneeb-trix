@@ -69,11 +69,11 @@ export function TrixSeat({
         <div className="avatar-wrap">
           <span className="avatar">{label.charAt(0)}</span>
           {isTurn && (
-            <svg className="turn-ring" viewBox="0 0 36 36" key={turnTimer?.token ?? 'bot'}>
-              <circle className="turn-ring-track" cx="18" cy="18" r="15" />
+            <svg className="turn-ring" viewBox="0 0 44 44" key={turnTimer?.token ?? 'bot'}>
+              <circle className="turn-ring-track" cx="22" cy="22" r="18" />
               <circle
                 className={`turn-ring-fill ${turnTimer ? 'countdown' : 'bot-ring'}`}
-                cx="18" cy="18" r="15"
+                cx="22" cy="22" r="18"
                 style={turnTimer ? { animationDuration: `${turnTimer.limitMs}ms` } : undefined}
               />
             </svg>

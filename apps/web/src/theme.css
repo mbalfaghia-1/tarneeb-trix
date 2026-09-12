@@ -132,9 +132,25 @@ html, body, #root {
 .table {
   position: relative;
   flex: 1;
-  background: radial-gradient(ellipse at 50% 42%, var(--table-1) 0%, var(--table-2) 82%);
+  background:
+    radial-gradient(ellipse at 50% 42%, var(--table-1) 0%, var(--table-2) 82%);
   overflow: hidden;
-  --card-lg-h: 104px;
+  --card-lg-h: 120px;
+}
+.table::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23000' fill-opacity='0.06'/%3E%3Crect x='0' y='0' width='2' height='2' fill='%23fff' fill-opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 0;
+}
+.table::after {
+  content: '';
+  position: absolute; inset: 0;
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.45);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ---- scoreboard ---- */
@@ -142,14 +158,14 @@ html, body, #root {
   position: absolute;
   top: 12px;
   left: 12px;
-  width: clamp(100px, 20vw, 152px);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 7px 9px;
+  width: clamp(100px, 20vw, 160px);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 8px 10px;
   z-index: 20;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 6px 18px var(--shadow);
+  box-shadow: 0 8px 24px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .score-target {
   text-align: center;
@@ -182,30 +198,31 @@ html, body, #root {
 .seat-right { right: 14px; top: 45%; transform: translateY(-50%); }
 
 .nameplate {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 3px 10px 3px 3px;
-  box-shadow: 0 3px 10px var(--shadow);
+  display: flex; align-items: center; gap: 7px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  padding: 4px 12px 4px 4px;
+  box-shadow: 0 4px 14px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .nameplate.active { border-color: var(--accent); }
-.avatar-wrap { position: relative; flex-shrink: 0; width: 28px; height: 28px; }
+.avatar-wrap { position: relative; flex-shrink: 0; width: 36px; height: 36px; }
 .avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--surface-3), var(--surface-2));
-  border: 1px solid var(--border);
-  display: grid; place-items: center; font-weight: 700; font-size: 14px; color: var(--text);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(145deg, var(--accent), #c78520);
+  border: 2px solid rgba(255,255,255,0.15);
+  display: grid; place-items: center; font-weight: 800; font-size: 16px; color: var(--on-accent);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 .turn-ring {
-  position: absolute; top: -4px; left: -4px; width: 36px; height: 36px;
+  position: absolute; top: -4px; left: -4px; width: 44px; height: 44px;
   transform: rotate(-90deg); pointer-events: none;
   filter: drop-shadow(0 0 3px var(--accent));
 }
 .turn-ring-track { fill: none; stroke: var(--border); stroke-width: 3; opacity: 0.35; }
 .turn-ring-fill {
   fill: none; stroke-width: 3; stroke-linecap: round;
-  stroke-dasharray: 94.25; stroke-dashoffset: 0;
+  stroke-dasharray: 113.1; stroke-dashoffset: 0;
 }
 .turn-ring-fill.countdown {
   animation: ring-drain linear forwards;
@@ -217,13 +234,13 @@ html, body, #root {
 @keyframes ring-drain {
   from { stroke-dashoffset: 0; stroke: var(--positive); }
   50% { stroke: var(--accent); }
-  to { stroke-dashoffset: 94.25; stroke: var(--negative); }
+  to { stroke-dashoffset: 113.1; stroke: var(--negative); }
 }
 @keyframes ring-pulse-opacity {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
-.name { font-size: 13px; }
+.name { font-size: 14px; font-weight: 700; }
 .badge-declarer { color: var(--accent); }
 .seat.turn .nameplate { border-color: var(--accent); }
 
@@ -236,19 +253,19 @@ html, body, #root {
 /* ---- cards ---- */
 .card {
   position: relative;
-  background: var(--card-face);
-  border-radius: 7px;
-  border: 1px solid var(--card-border);
-  box-shadow: 0 2px 5px var(--shadow);
+  background: linear-gradient(175deg, #fffdf7 0%, var(--card-face) 60%);
+  border-radius: 8px;
+  border: 1.5px solid var(--card-border);
+  box-shadow: 0 3px 8px var(--shadow), 0 1px 2px rgba(0,0,0,0.25);
   color: var(--card-black);
   font-weight: 700;
   padding: 0;
   display: block;
 }
-.card.xs { width: 30px; height: 42px; border-radius: 4px; }
-.card.sm { width: 46px; height: 64px; }
-.card.md { width: 62px; height: 88px; }
-.card.lg { width: 74px; height: 104px; }
+.card.xs { width: 32px; height: 44px; border-radius: 5px; }
+.card.sm { width: 50px; height: 70px; }
+.card.md { width: 66px; height: 94px; }
+.card.lg { width: 84px; height: 120px; }
 .card.red { color: var(--card-red); }
 .card.black { color: var(--card-black); }
 .card .corner {
@@ -256,35 +273,36 @@ html, body, #root {
   line-height: 0.9;
 }
 .card .corner .rank {
-  font-weight: 800; letter-spacing: -0.5px;
+  font-weight: 900; letter-spacing: -0.5px;
   font-family: 'Arial Black', 'Segoe UI', system-ui, sans-serif;
-  font-size: 17px;
+  font-size: 18px;
 }
 .card .corner .suit,
 .card .pip {
   font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols2', 'Segoe UI', sans-serif;
 }
-.card .corner .suit { font-size: 15px; margin-top: 1px; line-height: 1; }
-.card.lg .corner .rank { font-size: 22px; }
-.card.lg .corner .suit { font-size: 20px; }
-.card.md .corner .rank { font-size: 18px; }
-.card.md .corner .suit { font-size: 16px; }
-.card.sm .corner .rank { font-size: 14px; }
-.card.sm .corner .suit { font-size: 13px; }
+.card .corner .suit { font-size: 16px; margin-top: 1px; line-height: 1; }
+.card.lg .corner .rank { font-size: 24px; }
+.card.lg .corner .suit { font-size: 22px; }
+.card.md .corner .rank { font-size: 20px; }
+.card.md .corner .suit { font-size: 18px; }
+.card.sm .corner .rank { font-size: 15px; }
+.card.sm .corner .suit { font-size: 14px; }
 .card .corner.tl { top: 5px; left: 6px; }
 .card .corner.br { bottom: 5px; right: 6px; transform: rotate(180deg); }
 .card .pip {
   position: absolute; inset: 0; display: grid; place-items: center;
-  font-size: 32px;
+  font-size: 36px;
 }
-.card.lg .pip { font-size: 42px; }
+.card.lg .pip { font-size: 48px; }
 .card.playable { cursor: pointer; }
-.card.playable:hover { transform: translateY(-10px); box-shadow: 0 8px 16px var(--shadow); }
+.card.playable:hover { transform: translateY(-10px); box-shadow: 0 10px 22px var(--shadow); }
 .card.dimmed { opacity: 0.5; filter: grayscale(0.35); }
 .card:disabled { cursor: default; }
 .card.back {
   background: repeating-linear-gradient(45deg, var(--card-back-1) 0 6px, var(--card-back-2) 6px 12px);
-  border: 1px solid var(--card-back-2);
+  border: 1.5px solid var(--card-back-2);
+  box-shadow: 0 3px 8px var(--shadow), inset 0 0 12px rgba(0,0,0,0.15);
 }
 .mini-stack .card.back { position: absolute; top: 0; }
 .mini-stack .count {
@@ -296,7 +314,7 @@ html, body, #root {
 /* ---- trick ---- */
 .trick-area {
   position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%);
-  width: clamp(140px, 28vmin, 220px); height: clamp(140px, 28vmin, 220px); z-index: 12;
+  width: clamp(160px, 32vmin, 260px); height: clamp(160px, 32vmin, 260px); z-index: 12;
 }
 .trick-card { position: absolute; }
 .trick-card.at-bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
@@ -313,7 +331,7 @@ html, body, #root {
 .hand { display: flex; padding: 0 12px; direction: ltr; }
 .card { direction: ltr; }
 .trick-area { direction: ltr; }
-.hand-card { margin-left: -18px; transition: transform 0.12s ease; }
+.hand-card { margin-left: -20px; transition: transform 0.12s ease; }
 .hand-card:first-child { margin-left: 0; }
 .hand-card.suit-break { margin-left: 8px; }
 
@@ -331,10 +349,11 @@ html, body, #root {
 /* ---- trump / contract indicator ---- */
 .trump-indicator {
   position: absolute; top: 14px; right: 16px;
-  width: 54px; height: 54px; border-radius: 50%;
-  background: var(--surface); border: 2px solid var(--accent);
-  display: grid; place-items: center; font-size: 30px; z-index: 20;
-  box-shadow: 0 4px 14px var(--shadow);
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+  border: 2.5px solid var(--accent);
+  display: grid; place-items: center; font-size: 32px; z-index: 20;
+  box-shadow: 0 6px 20px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 .trump-indicator .red { color: var(--card-red); }
 .trump-indicator .black { color: var(--text); }
@@ -439,7 +458,7 @@ html, body, #root {
 @keyframes trick-pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
 .trick-card .card { animation: trick-pop 0.2s ease backwards; }
 .trick-card.winner .card {
-  box-shadow: 0 0 0 3px var(--accent), 0 0 18px var(--accent);
+  box-shadow: 0 0 0 3px var(--accent), 0 0 24px var(--accent);
 }
 
 @keyframes card-deal {
@@ -449,10 +468,10 @@ html, body, #root {
 .hand-card { animation: card-deal 0.32s ease backwards; }
 
 .hand-card.is-playable .card {
-  transform: translateY(-9px);
-  box-shadow: 0 0 0 2px var(--accent), 0 8px 14px var(--shadow);
+  transform: translateY(-10px);
+  box-shadow: 0 0 0 2.5px var(--accent), 0 10px 20px var(--shadow);
 }
-.hand-card.is-playable .card:hover { transform: translateY(-18px); }
+.hand-card.is-playable .card:hover { transform: translateY(-20px); box-shadow: 0 0 0 2.5px var(--accent), 0 16px 30px var(--shadow); }
 
 @keyframes turn-pulse {
   0%, 100% { box-shadow: 0 0 5px var(--accent); }
@@ -472,20 +491,20 @@ html, body, #root {
 }
 
 @media (max-width: 640px) {
-  .table { --card-lg-h: 82px; }
-  .card.lg { width: 58px; height: 82px; }
-  .card.md { width: 50px; height: 72px; }
-  .hand-card { margin-left: -24px; }
+  .table { --card-lg-h: 94px; }
+  .card.lg { width: 66px; height: 94px; }
+  .card.md { width: 54px; height: 78px; }
+  .hand-card { margin-left: -22px; }
 }
 
 @media (max-width: 480px) {
-  .table { --card-lg-h: 66px; }
-  .card.lg { width: 46px; height: 66px; }
-  .card.md { width: 40px; height: 58px; }
-  .card.lg .corner .rank { font-size: 16px; }
-  .card.lg .corner .suit { font-size: 12px; }
-  .card.lg .pip { font-size: 27px; }
-  .hand-card { margin-left: -28px; }
+  .table { --card-lg-h: 78px; }
+  .card.lg { width: 54px; height: 78px; }
+  .card.md { width: 46px; height: 66px; }
+  .card.lg .corner .rank { font-size: 18px; }
+  .card.lg .corner .suit { font-size: 14px; }
+  .card.lg .pip { font-size: 32px; }
+  .hand-card { margin-left: -26px; }
   .hand-card.suit-break { margin-left: 4px; }
   .hand-card.is-playable .card { transform: translateY(-7px); }
   .bid-grid { gap: 6px; }
@@ -498,12 +517,12 @@ html, body, #root {
 }
 
 @media (max-width: 360px) {
-  .table { --card-lg-h: 56px; }
-  .card.lg { width: 40px; height: 56px; }
-  .card.lg .corner .rank { font-size: 14px; }
-  .card.lg .corner .suit { font-size: 11px; }
-  .card.lg .pip { font-size: 22px; }
-  .hand-card { margin-left: -30px; }
+  .table { --card-lg-h: 66px; }
+  .card.lg { width: 46px; height: 66px; }
+  .card.lg .corner .rank { font-size: 16px; }
+  .card.lg .corner .suit { font-size: 12px; }
+  .card.lg .pip { font-size: 26px; }
+  .hand-card { margin-left: -28px; }
   .hand-card.suit-break { margin-left: 2px; }
 }
 
