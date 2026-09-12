@@ -861,31 +861,27 @@ html, body, #root {
   gap: 12px; z-index: 12; max-width: 96%;
 }
 .shed-col { display: flex; flex-direction: column; align-items: center; }
-.shed-card { margin-top: clamp(-70px, -7vw, -50px); }
+.shed-card { margin-top: clamp(-110px, -9vw, -60px); }
 .shed-card:first-child { margin-top: 0; }
 .shed-empty {
-  width: clamp(70px, 7vw, 110px); height: clamp(100px, 10vw, 156px);
+  width: clamp(80px, 8.5vw, 130px); height: clamp(114px, 12.1vw, 186px);
   border: 2px dashed var(--border); border-radius: 8px;
   display: grid; place-items: center; font-size: 38px; color: var(--text-dim);
 }
 .shed-empty.red { color: var(--card-red); opacity: 0.7; }
 @media (max-width: 480px) {
   .shedding-board { gap: 6px; }
-  .shed-card { margin-top: -50px; }
-  .shed-empty { width: 48px; height: 68px; font-size: 26px; }
-  .shedding-board .card.md { width: 48px; height: 68px; }
-  .shedding-board .card.md .corner .rank { font-size: 14px; }
-  .shedding-board .card.md .corner .suit { font-size: 12px; }
-  .shedding-board .card.md .pip { font-size: 24px; }
+  .shed-card { margin-top: -52px; }
+  .shed-empty { width: 60px; height: 86px; font-size: 26px; }
 }
 
-@media (orientation: landscape) and (max-height: 1300px) {
-  .shedding-board { gap: 8px; }
-  .shed-card { margin-top: -56px; }
-  .shedding-board .card.md { width: 56px; height: 80px; }
-  .shedding-board .card.md .corner .rank { font-size: 16px; }
-  .shedding-board .card.md .corner .suit { font-size: 14px; }
-  .shedding-board .card.md .pip { font-size: 28px; }
+@media (orientation: landscape) and (max-height: 700px) {
+  .shedding-board { gap: 6px; }
+  .shed-card { margin-top: -64px; }
+  .shedding-board .card.lg { width: 56px; height: 80px; }
+  .shedding-board .card.lg .corner .rank { font-size: 16px; }
+  .shedding-board .card.lg .corner .suit { font-size: 14px; }
+  .shedding-board .card.lg .pip { font-size: 28px; }
   .shed-empty { width: 56px; height: 80px; font-size: 26px; }
 }
 
@@ -902,10 +898,10 @@ html, body, #root {
   .scoreboard { padding: 5px 7px; }
   .scoreboard .score-row.big { font-size: 20px; }
   .shedding-board { gap: 4px; }
-  .shedding-board .card.md { width: 34px; height: 46px; }
-  .shedding-board .card.md .corner .rank { font-size: 11px; }
-  .shedding-board .card.md .corner .suit { font-size: 9px; }
-  .shedding-board .card.md .pip { font-size: 18px; }
+  .shedding-board .card.lg { width: 34px; height: 46px; }
+  .shedding-board .card.lg .corner .rank { font-size: 11px; }
+  .shedding-board .card.lg .corner .suit { font-size: 9px; }
+  .shedding-board .card.lg .pip { font-size: 18px; }
   .shed-card { margin-top: -34px; }
   .shed-empty { width: 34px; height: 46px; font-size: 16px; }
 }
