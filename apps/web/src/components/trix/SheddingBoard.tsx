@@ -18,7 +18,7 @@ export function SheddingBoard({ state }: { state: TrixState }) {
         return (
           <div className="shed-col" key={suit}>
             {r ? (
-              rangeCards(suit, r.low, r.high).map((card) => (
+              rangeCards(suit, r.low, r.high).reverse().map((card) => (
                 <div className="shed-card" key={card.rank}>
                   <CardView card={card} size="md" />
                 </div>

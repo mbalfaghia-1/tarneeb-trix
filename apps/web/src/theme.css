@@ -135,7 +135,7 @@ html, body, #root {
   background:
     radial-gradient(ellipse at 50% 42%, var(--table-1) 0%, var(--table-2) 82%);
   overflow: hidden;
-  --card-lg-h: 142px;
+  --card-lg-h: clamp(114px, 12.1vw, 186px);
 }
 .table::before {
   content: '';
@@ -263,9 +263,9 @@ html, body, #root {
   display: block;
 }
 .card.xs { width: 34px; height: 48px; border-radius: 5px; }
-.card.sm { width: 56px; height: 80px; }
-.card.md { width: 80px; height: 114px; }
-.card.lg { width: 100px; height: 142px; }
+.card.sm { width: clamp(56px, 5vw, 80px); height: clamp(80px, 7.1vw, 114px); }
+.card.md { width: clamp(70px, 7vw, 110px); height: clamp(100px, 10vw, 156px); }
+.card.lg { width: clamp(80px, 8.5vw, 130px); height: clamp(114px, 12.1vw, 186px); }
 .card.red { color: var(--card-red); }
 .card.black { color: var(--card-black); }
 .card .corner {
@@ -282,10 +282,10 @@ html, body, #root {
   font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols2', 'Segoe UI', sans-serif;
 }
 .card .corner .suit { font-size: 16px; margin-top: 1px; line-height: 1; }
-.card.lg .corner .rank { font-size: 28px; }
-.card.lg .corner .suit { font-size: 24px; }
-.card.md .corner .rank { font-size: 22px; }
-.card.md .corner .suit { font-size: 20px; }
+.card.lg .corner .rank { font-size: clamp(22px, 2.4vw, 34px); }
+.card.lg .corner .suit { font-size: clamp(18px, 2vw, 28px); }
+.card.md .corner .rank { font-size: clamp(18px, 1.8vw, 26px); }
+.card.md .corner .suit { font-size: clamp(16px, 1.6vw, 24px); }
 .card.sm .corner .rank { font-size: 16px; }
 .card.sm .corner .suit { font-size: 15px; }
 .card .corner.tl { top: 5px; left: 6px; }
@@ -294,7 +294,7 @@ html, body, #root {
   position: absolute; inset: 0; display: grid; place-items: center;
   font-size: 40px;
 }
-.card.lg .pip { font-size: 56px; }
+.card.lg .pip { font-size: clamp(42px, 4.5vw, 66px); }
 .card.playable { cursor: pointer; }
 .card.playable:hover { transform: translateY(-10px); box-shadow: 0 10px 22px var(--shadow); }
 .card.dimmed { opacity: 0.5; filter: grayscale(0.35); }
@@ -314,7 +314,7 @@ html, body, #root {
 /* ---- trick ---- */
 .trick-area {
   position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%);
-  width: clamp(180px, 36vmin, 320px); height: clamp(180px, 36vmin, 320px); z-index: 12;
+  width: clamp(180px, 38vmin, 380px); height: clamp(180px, 38vmin, 380px); z-index: 12;
 }
 .trick-card { position: absolute; }
 .trick-card.at-bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
@@ -861,10 +861,11 @@ html, body, #root {
   gap: 12px; z-index: 12; max-width: 96%;
 }
 .shed-col { display: flex; flex-direction: column; align-items: center; }
-.shed-card { margin-top: -80px; }
+.shed-card { margin-top: clamp(-70px, -7vw, -50px); }
 .shed-card:first-child { margin-top: 0; }
 .shed-empty {
-  width: 80px; height: 114px; border: 2px dashed var(--border); border-radius: 8px;
+  width: clamp(70px, 7vw, 110px); height: clamp(100px, 10vw, 156px);
+  border: 2px dashed var(--border); border-radius: 8px;
   display: grid; place-items: center; font-size: 38px; color: var(--text-dim);
 }
 .shed-empty.red { color: var(--card-red); opacity: 0.7; }
