@@ -135,7 +135,7 @@ html, body, #root {
   background:
     radial-gradient(ellipse at 50% 42%, var(--table-1) 0%, var(--table-2) 82%);
   overflow: hidden;
-  --card-lg-h: 120px;
+  --card-lg-h: 142px;
 }
 .table::before {
   content: '';
@@ -240,7 +240,7 @@ html, body, #root {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
-.name { font-size: 14px; font-weight: 700; }
+.name { font-size: 15px; font-weight: 700; }
 .badge-declarer { color: var(--accent); }
 .seat.turn .nameplate { border-color: var(--accent); }
 
@@ -262,10 +262,10 @@ html, body, #root {
   padding: 0;
   display: block;
 }
-.card.xs { width: 32px; height: 44px; border-radius: 5px; }
-.card.sm { width: 50px; height: 70px; }
-.card.md { width: 66px; height: 94px; }
-.card.lg { width: 84px; height: 120px; }
+.card.xs { width: 34px; height: 48px; border-radius: 5px; }
+.card.sm { width: 56px; height: 80px; }
+.card.md { width: 80px; height: 114px; }
+.card.lg { width: 100px; height: 142px; }
 .card.red { color: var(--card-red); }
 .card.black { color: var(--card-black); }
 .card .corner {
@@ -282,19 +282,19 @@ html, body, #root {
   font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols2', 'Segoe UI', sans-serif;
 }
 .card .corner .suit { font-size: 16px; margin-top: 1px; line-height: 1; }
-.card.lg .corner .rank { font-size: 24px; }
-.card.lg .corner .suit { font-size: 22px; }
-.card.md .corner .rank { font-size: 20px; }
-.card.md .corner .suit { font-size: 18px; }
-.card.sm .corner .rank { font-size: 15px; }
-.card.sm .corner .suit { font-size: 14px; }
+.card.lg .corner .rank { font-size: 28px; }
+.card.lg .corner .suit { font-size: 24px; }
+.card.md .corner .rank { font-size: 22px; }
+.card.md .corner .suit { font-size: 20px; }
+.card.sm .corner .rank { font-size: 16px; }
+.card.sm .corner .suit { font-size: 15px; }
 .card .corner.tl { top: 5px; left: 6px; }
 .card .corner.br { bottom: 5px; right: 6px; transform: rotate(180deg); }
 .card .pip {
   position: absolute; inset: 0; display: grid; place-items: center;
-  font-size: 36px;
+  font-size: 40px;
 }
-.card.lg .pip { font-size: 48px; }
+.card.lg .pip { font-size: 56px; }
 .card.playable { cursor: pointer; }
 .card.playable:hover { transform: translateY(-10px); box-shadow: 0 10px 22px var(--shadow); }
 .card.dimmed { opacity: 0.5; filter: grayscale(0.35); }
@@ -314,7 +314,7 @@ html, body, #root {
 /* ---- trick ---- */
 .trick-area {
   position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%);
-  width: clamp(160px, 32vmin, 260px); height: clamp(160px, 32vmin, 260px); z-index: 12;
+  width: clamp(180px, 36vmin, 320px); height: clamp(180px, 36vmin, 320px); z-index: 12;
 }
 .trick-card { position: absolute; }
 .trick-card.at-bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
@@ -491,20 +491,23 @@ html, body, #root {
 }
 
 @media (max-width: 640px) {
-  .table { --card-lg-h: 94px; }
-  .card.lg { width: 66px; height: 94px; }
-  .card.md { width: 54px; height: 78px; }
-  .hand-card { margin-left: -22px; }
+  .table { --card-lg-h: 104px; }
+  .card.lg { width: 74px; height: 104px; }
+  .card.lg .corner .rank { font-size: 22px; }
+  .card.lg .corner .suit { font-size: 18px; }
+  .card.lg .pip { font-size: 42px; }
+  .card.md { width: 58px; height: 82px; }
+  .hand-card { margin-left: -24px; }
 }
 
 @media (max-width: 480px) {
-  .table { --card-lg-h: 78px; }
-  .card.lg { width: 54px; height: 78px; }
-  .card.md { width: 46px; height: 66px; }
-  .card.lg .corner .rank { font-size: 18px; }
-  .card.lg .corner .suit { font-size: 14px; }
-  .card.lg .pip { font-size: 32px; }
-  .hand-card { margin-left: -26px; }
+  .table { --card-lg-h: 86px; }
+  .card.lg { width: 60px; height: 86px; }
+  .card.lg .corner .rank { font-size: 19px; }
+  .card.lg .corner .suit { font-size: 15px; }
+  .card.lg .pip { font-size: 34px; }
+  .card.md { width: 48px; height: 68px; }
+  .hand-card { margin-left: -28px; }
   .hand-card.suit-break { margin-left: 4px; }
   .hand-card.is-playable .card { transform: translateY(-7px); }
   .bid-grid { gap: 6px; }
@@ -517,12 +520,12 @@ html, body, #root {
 }
 
 @media (max-width: 360px) {
-  .table { --card-lg-h: 66px; }
-  .card.lg { width: 46px; height: 66px; }
+  .table { --card-lg-h: 72px; }
+  .card.lg { width: 50px; height: 72px; }
   .card.lg .corner .rank { font-size: 16px; }
   .card.lg .corner .suit { font-size: 12px; }
-  .card.lg .pip { font-size: 26px; }
-  .hand-card { margin-left: -28px; }
+  .card.lg .pip { font-size: 28px; }
+  .hand-card { margin-left: -30px; }
   .hand-card.suit-break { margin-left: 2px; }
 }
 
@@ -857,12 +860,12 @@ html, body, #root {
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   gap: 8px; z-index: 12; max-width: 92%;
 }
-.shed-row { display: flex; align-items: center; min-height: 106px; justify-content: center; }
-.shed-card { margin-left: -40px; }
+.shed-row { display: flex; align-items: center; min-height: 120px; justify-content: center; }
+.shed-card { margin-left: -46px; }
 .shed-card:first-child { margin-left: 0; }
 .shed-empty {
-  width: 74px; height: 104px; border: 2px dashed var(--border); border-radius: 7px;
-  display: grid; place-items: center; font-size: 34px; color: var(--text-dim);
+  width: 86px; height: 120px; border: 2px dashed var(--border); border-radius: 8px;
+  display: grid; place-items: center; font-size: 38px; color: var(--text-dim);
 }
 .shed-empty.red { color: var(--card-red); opacity: 0.7; }
 @media (max-width: 480px) {
