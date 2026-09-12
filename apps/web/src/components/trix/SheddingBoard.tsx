@@ -9,18 +9,18 @@ function rangeCards(suit: Suit, low: Rank, high: Rank): Card[] {
   return out;
 }
 
-/** The shedding tableau: one row per suit showing its played chain (J outward). */
+/** The shedding tableau: one column per suit, cards fan downward. */
 export function SheddingBoard({ state }: { state: TrixState }) {
   return (
     <div className="shedding-board">
       {ROW_SUITS.map((suit) => {
         const r = state.layout[suit];
         return (
-          <div className="shed-row" key={suit}>
+          <div className="shed-col" key={suit}>
             {r ? (
               rangeCards(suit, r.low, r.high).map((card) => (
                 <div className="shed-card" key={card.rank}>
-                  <CardView card={card} size="lg" />
+                  <CardView card={card} size="md" />
                 </div>
               ))
             ) : (

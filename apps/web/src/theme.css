@@ -855,41 +855,37 @@ html, body, #root {
    spades row and below the diamonds row at any height. */
 .shedding-board {
   position: absolute; left: 50%; transform: translateX(-50%);
-  top: clamp(55px, 16vh, 150px);
+  top: clamp(50px, 14vh, 130px);
   bottom: calc(var(--card-lg-h) + clamp(100px, 18vh, 146px) + env(safe-area-inset-bottom, 0px));
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  gap: 8px; z-index: 12; max-width: 92%;
+  display: flex; flex-direction: row; justify-content: center; align-items: flex-start;
+  gap: 12px; z-index: 12; max-width: 96%;
 }
-.shed-row { display: flex; align-items: center; min-height: 120px; justify-content: center; }
-.shed-card { margin-left: -46px; }
-.shed-card:first-child { margin-left: 0; }
+.shed-col { display: flex; flex-direction: column; align-items: center; }
+.shed-card { margin-top: -80px; }
+.shed-card:first-child { margin-top: 0; }
 .shed-empty {
-  width: 86px; height: 120px; border: 2px dashed var(--border); border-radius: 8px;
+  width: 80px; height: 114px; border: 2px dashed var(--border); border-radius: 8px;
   display: grid; place-items: center; font-size: 38px; color: var(--text-dim);
 }
 .shed-empty.red { color: var(--card-red); opacity: 0.7; }
 @media (max-width: 480px) {
-  .shed-row { min-height: 72px; }
-  .shed-card { margin-left: -32px; }
-  .shed-empty { width: 50px; height: 72px; font-size: 26px; }
+  .shedding-board { gap: 6px; }
+  .shed-card { margin-top: -50px; }
+  .shed-empty { width: 48px; height: 68px; font-size: 26px; }
+  .shedding-board .card.md { width: 48px; height: 68px; }
+  .shedding-board .card.md .corner .rank { font-size: 14px; }
+  .shedding-board .card.md .corner .suit { font-size: 12px; }
+  .shedding-board .card.md .pip { font-size: 24px; }
 }
 
-/* Landscape (tablets / laptops): the four-row shedding board is tall, and on a
-   limited-height wide screen its rows overlapped the seats — the bottom (diamonds)
-   row hit the "You" nameplate, and the top (spades) row rode into the top seat's
-   revealed-2 chip. Compact the cards and centre the board in the band between the
-   seats so every suit row stays clear top and bottom. The threshold is generous so
-   all tablet/laptop heights get the compact, fitted board (only very tall displays,
-   where the full-size board has ample room, keep the default). */
 @media (orientation: landscape) and (max-height: 1300px) {
-  .shedding-board { gap: 5px; }
-  .shed-row { min-height: 72px; }
-  .shed-card { margin-left: -30px; }
-  .shedding-board .card.lg { width: 52px; height: 72px; }
-  .shedding-board .card.lg .corner .rank { font-size: 14px; }
-  .shedding-board .card.lg .corner .suit { font-size: 13px; }
-  .shedding-board .card.lg .pip { font-size: 27px; }
-  .shed-empty { width: 52px; height: 72px; font-size: 26px; }
+  .shedding-board { gap: 8px; }
+  .shed-card { margin-top: -56px; }
+  .shedding-board .card.md { width: 56px; height: 80px; }
+  .shedding-board .card.md .corner .rank { font-size: 16px; }
+  .shedding-board .card.md .corner .suit { font-size: 14px; }
+  .shedding-board .card.md .pip { font-size: 28px; }
+  .shed-empty { width: 56px; height: 80px; font-size: 26px; }
 }
 
 @media (max-height: 500px) {
@@ -904,13 +900,12 @@ html, body, #root {
   .trick-area { top: 40%; }
   .scoreboard { padding: 5px 7px; }
   .scoreboard .score-row.big { font-size: 20px; }
-  .shedding-board { gap: 2px; }
-  .shedding-board .card.lg { width: 34px; height: 46px; }
-  .shedding-board .card.lg .corner .rank { font-size: 11px; }
-  .shedding-board .card.lg .corner .suit { font-size: 9px; }
-  .shedding-board .card.lg .pip { font-size: 18px; }
-  .shed-row { min-height: 46px; }
-  .shed-card { margin-left: -22px; }
+  .shedding-board { gap: 4px; }
+  .shedding-board .card.md { width: 34px; height: 46px; }
+  .shedding-board .card.md .corner .rank { font-size: 11px; }
+  .shedding-board .card.md .corner .suit { font-size: 9px; }
+  .shedding-board .card.md .pip { font-size: 18px; }
+  .shed-card { margin-top: -34px; }
   .shed-empty { width: 34px; height: 46px; font-size: 16px; }
 }
 
