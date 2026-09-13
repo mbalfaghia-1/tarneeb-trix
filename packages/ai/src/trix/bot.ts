@@ -655,7 +655,7 @@ function leadAvoidance(
   // opponent DOUBLED a penalty: leading it (e.g. a heart) drives them toward catching
   // their own doubled card, instead of us hoarding a forcing card while we win side
   // tricks. Prefer non-frozen suits, and don't lead an honour if a low card is in hand.
-  const holdsLow = hand.some((c) => c.rank <= 9); // full hand: never lead an honour over any low card
+  const holdsLow = candidates.some((c) => c.rank <= 9);
   const followableAny = candidates.filter(
     (c) => !allOppsVoid(c.suit) && (!holdsLow || c.rank <= 11),
   );
@@ -683,8 +683,8 @@ function leadAvoidance(
   if (lowCards.length > 0) return lowest(lowCards);
   const modest = candidates.filter((c) => c.rank <= 11);
   if (modest.length > 0) return lowest(modest);
-  const handLow = hand.filter((c) => c.rank <= 9);
-  if (handLow.length > 0) return lowest(handLow);
+  const candLow = candidates.filter((c) => c.rank <= 9);
+  if (candLow.length > 0) return lowest(candLow);
   return lowest(candidates);
 }
 

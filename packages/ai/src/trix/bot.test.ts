@@ -310,8 +310,18 @@ describe('trix avoidance stress', () => {
             const hand = s.hands[s.turn]!;
             const trick = s.currentTrick;
             if (trick.length === 0) {
-              // Leading: never lead a high card while holding a low one.
-              if (hand.some((c) => c.rank <= 9) && action.card.rank >= 12) {
+              // Leading: never lead a high card while holding a low one,
+              // unless the only low cards are in frozen doubled suits.
+              const frozenSuits = new Set<Suit>();
+              const partner = ((s.turn + 2) % 4) as Seat;
+              for (const d of s.doubled) {
+                if (d.by === s.turn || (s.partnership && d.by === partner)) {
+                  if (!s.captured?.some((pile) => pile.some((c) => c.suit === d.card.suit && c.rank === d.card.rank)))
+                    frozenSuits.add(d.card.suit);
+                }
+              }
+              const availableLow = hand.some((c) => c.rank <= 9 && !frozenSuits.has(c.suit));
+              if (availableLow && action.card.rank >= 12) {
                 throw new Error(
                   `seat ${s.turn} led ${action.card.rank}${action.card.suit} with a low card in hand`,
                 );

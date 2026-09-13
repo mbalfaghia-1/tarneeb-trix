@@ -375,7 +375,13 @@ function chooseFollow(state: TarneebState, seat: Seat, k: Knowledge, legal: read
       const topOut = k.highestOutstanding(led);
       const partnerSecure = topOut === null || winning.rank > topOut;
       if (!partnerSecure) {
-        return highest(legal.filter((c) => c.suit === led));
+        const myFollows = legal.filter((c) => c.suit === led);
+        const myTop = highest(myFollows);
+        const coversExtra = k.outstanding(led).some(
+          (r) => r > winning.rank && r <= myTop.rank,
+        );
+        if (coversExtra) return myTop;
+        return lowest(myFollows);
       }
     }
     // Partner is master (safe) or 2nd hand: conservative play.

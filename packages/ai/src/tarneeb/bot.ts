@@ -35,12 +35,11 @@ export function chooseTarneebAction(state: TarneebState): TarneebAction {
 
 function chooseBid(state: TarneebState, seat: Seat): TarneebAction {
   const hand = state.hands[seat]!;
-  // Our own sure tricks. A bid is a TEAM claim (min 7 of 13), so add a conservative
-  // allowance for our unseen partner (~a quarter of the deck) to get expected team
-  // tricks. Failing costs minus the bid and overbidding earns nothing extra (a made
-  // bid scores actual tricks), so we bid the MINIMUM needed to stay in the auction —
-  // never above our ceiling — and simply pass a hand too weak to want it. All four
-  // passing just redeals, so there is no need to prop up a bad hand with a bid.
+  const trump = bestSuit(hand);
+  const trumpHonours = hand.filter((c) => c.suit === trump && c.rank >= 11).length;
+  const sideHonours = hand.filter((c) => c.suit !== trump && c.rank >= 11).length;
+  if (trumpHonours < 2 || sideHonours < 1) return { type: 'PASS', seat };
+
   const ceiling = clamp(Math.round(estimateTricks(hand)) + PARTNER_ALLOWANCE, 0, MAX_BID);
   const min = minLegalBid(state.highBid?.amount ?? null);
   if (ceiling >= min) return { type: 'BID', seat, amount: min };

@@ -179,9 +179,6 @@ function chooseContract(state: TrixState, seat: Seat, contract: TrixContract): T
       turn: state.king,
       layout: emptyLayout(),
       finishOrder: [],
-      // Exposing the 2s is a Trix Complex PARTNERSHIP rule: partners lead each other's
-      // suits so a stuck 2 can be played. Playing alone there's no partner to help, so
-      // the 2s stay hidden (as in regular Trix).
       exposedTwos:
         state.mode === 'complex' && state.partnership ? computeExposedTwos(state.hands) : [],
     };

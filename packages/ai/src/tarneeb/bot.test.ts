@@ -59,10 +59,10 @@ describe('bidding', () => {
     C(2, 'D'), C(3, 'D'), C(4, 'D'),
     C(2, 'C'), C(3, 'C'), C(4, 'C'),
   ];
-  // A-K + five spades (2 honour tricks + 2 length) ≈ 4 own tricks.
+  // A-K spades (2 trump honours) + Q♥ (side honour) + length ≈ 4 own tricks.
   const decent: Card[] = [
     C(14, 'S'), C(13, 'S'), C(5, 'S'), C(4, 'S'), C(3, 'S'),
-    C(2, 'H'), C(3, 'H'), C(4, 'H'), C(5, 'H'),
+    C(12, 'H'), C(3, 'H'), C(4, 'H'), C(5, 'H'),
     C(2, 'D'), C(3, 'D'),
     C(2, 'C'), C(3, 'C'),
   ];
@@ -137,6 +137,20 @@ describe('play tactics', () => {
       currentTrick: playedCards([2, C(5, 'D')], [3, C(4, 'D')]),
     });
     expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(14, 'D'));
+  });
+
+  it('T2: ducks when overtaking partner gains nothing (J cannot beat outstanding K)', () => {
+    // Partner (seat 0) leads 10♥ (trump), opponent (seat 1) discards 2♣.
+    // We (seat 2) hold J♥/3♥. J♥ doesn't cover any threat 10♥ doesn't already
+    // beat (no outstanding rank between 10 and J since we hold the J), so duck.
+    const state = playState({
+      turn: 2,
+      trump: 'H',
+      hands: [[], [], [C(11, 'H'), C(3, 'H')], []],
+      leader: 0,
+      currentTrick: playedCards([0, C(10, 'H')], [1, C(2, 'C')]),
+    });
+    expect((chooseTarneebAction(state) as { card: Card }).card).toEqual(C(3, 'H'));
   });
 
   it('T2: 3rd hand high — plays highest even without the master', () => {

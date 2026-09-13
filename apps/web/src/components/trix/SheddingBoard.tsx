@@ -21,7 +21,7 @@ function ShedCol({ cards, suit }: { cards: Card[]; suit: Suit }) {
     if (!cardEl) return;
     const cardH = cardEl.offsetHeight;
     const availH = col.parentElement?.clientHeight ?? 400;
-    const visiblePerCard = Math.max(20, Math.min(cardH * 0.24, (availH - cardH) / (cards.length - 1)));
+    const visiblePerCard = Math.max(cardH * 0.28, Math.min(cardH * 0.32, (availH - cardH) / (cards.length - 1)));
     setOverlap(cardH - visiblePerCard);
   }, [cards.length]);
 

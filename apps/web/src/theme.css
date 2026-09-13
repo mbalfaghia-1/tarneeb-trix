@@ -879,7 +879,15 @@ html, body, #root {
   .shed-empty { width: 60px; height: 86px; font-size: 26px; }
 }
 
-@media (orientation: landscape) and (max-height: 700px) {
+@media (max-height: 700px) {
+  .table { --card-lg-h: 86px; }
+  .card.lg { width: 60px; height: 86px; }
+  .card.lg .corner .rank { font-size: 19px; }
+  .card.lg .corner .suit { font-size: 15px; }
+  .card.lg .pip { font-size: 34px; }
+  .card.md { width: 48px; height: 68px; }
+  .hand-card { margin-left: -24px; }
+  .hand-card.suit-break { margin-left: 4px; }
   .shedding-board { gap: 6px; }
   .shedding-board .card.lg { width: 56px; height: 80px; }
   .shedding-board .card.lg .corner .rank { font-size: 16px; }
