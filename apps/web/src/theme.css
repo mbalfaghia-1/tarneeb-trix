@@ -447,6 +447,12 @@ html, body, #root {
   font-size: 18px; font-weight: 700; padding: 10px 26px; cursor: pointer;
 }
 .primary-btn:hover { filter: brightness(1.08); }
+.secondary-btn {
+  background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: 11px; font-size: 16px; font-weight: 600; padding: 8px 22px;
+  cursor: pointer; margin-top: 8px;
+}
+.secondary-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 
 .overlay .panel { position: relative; z-index: 2; }
 .confetti-canvas {

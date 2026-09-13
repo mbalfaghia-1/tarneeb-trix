@@ -60,10 +60,12 @@ export function TrixDealOverlay({
 export function TrixGameOverlay({
   state,
   onNewGame,
+  onExit,
   t,
 }: {
   state: TrixState;
   onNewGame: () => void;
+  onExit?: () => void;
   t: T;
 }) {
   if (state.winner === null) return null;
@@ -89,6 +91,11 @@ export function TrixGameOverlay({
         <button type="button" className="primary-btn" onClick={onNewGame}>
           {t('newGame')}
         </button>
+        {onExit && (
+          <button type="button" className="secondary-btn" onClick={onExit}>
+            {t('menu')}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import type { T } from '../i18n';
 import { TarneebBoard } from '../components/TarneebBoard';
 import { GameOverOverlay, HandOverOverlay } from '../components/Overlays';
 
-export function TarneebScreen({ t }: { t: T }) {
+export function TarneebScreen({ t, onExit }: { t: T; onExit?: () => void }) {
   const game = useTarneebGame();
   const { state } = game;
   useGameSounds(game);
@@ -28,7 +28,7 @@ export function TarneebScreen({ t }: { t: T }) {
         <HandOverOverlay state={state} onNext={game.nextHand} t={t} />
       )}
       {state.phase === 'game-over' && !game.reviewTrick && (
-        <GameOverOverlay state={state} onNewGame={game.newGame} t={t} />
+        <GameOverOverlay state={state} onNewGame={game.newGame} onExit={onExit} t={t} />
       )}
     </TarneebBoard>
   );

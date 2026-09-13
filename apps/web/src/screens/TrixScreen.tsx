@@ -10,10 +10,12 @@ export function TrixScreen({
   t,
   mode = 'regular',
   partnership = false,
+  onExit,
 }: {
   t: T;
   mode?: TrixMode;
   partnership?: boolean;
+  onExit?: () => void;
 }) {
   const game = useTrixGame(mode, partnership);
   const { state } = game;
@@ -35,7 +37,7 @@ export function TrixScreen({
         <TrixDealOverlay state={state} onNext={game.nextDeal} t={t} />
       )}
       {state.phase === 'game-over' && (
-        <TrixGameOverlay state={state} onNewGame={game.newGame} t={t} />
+        <TrixGameOverlay state={state} onNewGame={game.newGame} onExit={onExit} t={t} />
       )}
     </TrixBoard>
   );

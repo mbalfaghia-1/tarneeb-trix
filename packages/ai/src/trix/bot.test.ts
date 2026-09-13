@@ -561,6 +561,34 @@ describe('trix partnership coordination', () => {
     expect(chosen(s).suit).toBe('H');
   });
 
+  it('does not lead a suit where an opponent doubled a Q and we hold higher cards (Complex)', () => {
+    // Complex; opponent (seat 1) doubled Q♠. We hold A♠, K♠, plus low clubs.
+    // Leading spades develops the suit and risks our A/K catching the doubled Q♠.
+    const s = trixPlay('complex', [C(14, 'S'), C(13, 'S'), C(5, 'C'), C(3, 'C')], [], {
+      doubled: [{ card: C(12, 'S'), by: 1 }],
+    });
+    expect(chosen(s).suit).not.toBe('S');
+  });
+
+  it('does not lead a suit where an opponent doubled K♥ and we hold A♥ (Complex)', () => {
+    // Complex; opponent (seat 1) doubled K♥. We hold A♥ plus low clubs.
+    // Leading hearts risks our A♥ catching the doubled K♥ later.
+    const s = trixPlay('complex', [C(14, 'H'), C(5, 'C'), C(3, 'C'), C(2, 'D')], [], {
+      doubled: [{ card: C(13, 'H'), by: 1 }],
+    });
+    expect(chosen(s).suit).not.toBe('H');
+  });
+
+  it('CAN lead opponent-doubled suit when we hold only LOWER cards (safe to duck)', () => {
+    // Complex; opponent doubled K♥, but we hold only J♥ (below K♥) — safe to lead.
+    // All opponents are void in spades, so hearts is the only followable suit.
+    const s = trixPlay('complex', [C(5, 'S'), C(4, 'S'), C(11, 'H')], [], {
+      voids: [[], ['S'], ['S'], ['S']],
+      doubled: [{ card: C(13, 'H'), by: 1 }],
+    });
+    expect(chosen(s).suit).toBe('H');
+  });
+
   it('sheds the A♦ when an opponent doubled the Q♦ and a diamond is led', () => {
     // Queens; the leader (seat 3) doubled the Q♦. A diamond is led and we hold A♦/2♦.
     // Win the (queen-free, free) trick with the A♦ so we are not left holding it to

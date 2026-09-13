@@ -564,12 +564,25 @@ function leadAvoidance(
     }
   }
 
+  // DANGEROUS-TO-LEAD: an opponent doubled a penalty (Q/K♥) in this suit and we
+  // hold cards ranked ABOVE it — leading develops the suit and risks our high card
+  // winning a later trick containing the doubled penalty.
+  const dangerous = new Set<Suit>();
+  for (const d of state.doubled) {
+    if (!opponents.includes(d.by)) continue;
+    if (wasPlayed(d.card)) continue;
+    if (hand.some((c) => c.suit === d.card.suit && c.rank > d.card.rank)) {
+      dangerous.add(d.card.suit);
+    }
+  }
+
   // Partnership: lead a suit our partner is void in (low) so they can shed a
   // penalty onto an opponent, who is likely to win a low lead.
   if (state.partnership) {
     for (const suit of state.voids[partner] ?? []) {
       if ((contract === 'diamonds' || contract === 'complex') && suit === 'D') continue; // don't lead diamonds ourselves
       if (protect.has(suit)) continue; // never broach our own/partner's frozen doubled suit
+      if (dangerous.has(suit)) continue; // we hold cards above opponent's doubled penalty
       if (allOppsVoid(suit)) continue; // no opponent left to take it — we'd win and catch it ourselves
       // Only lead it if we hold a LOW card there — a high lead would win the
       // trick ourselves and catch our partner's dumped penalty.
@@ -613,13 +626,16 @@ function leadAvoidance(
   const followable = lowCards.filter((c) => !allOppsVoid(c.suit));
   const pool0 = losable.length > 0 ? losable : followable;
   if (pool0.length > 0) {
+    // Avoid suits where an opponent doubled a penalty and we hold higher cards.
+    const nonDangerous = pool0.filter((c) => !dangerous.has(c.suit));
+    const safePool = nonDangerous.length > 0 ? nonDangerous : pool0;
     // Prefer a suit where we hold NO high honour (A/K): leading the low card of an
     // A/K suit throws away the cover that keeps that honour from being forced to win a
     // later trick and catch penalties. Keep those suits frozen; broach a "soft" one.
     const suitTop = (suit: Suit) =>
       Math.max(...hand.filter((c) => c.suit === suit).map((c) => c.rank));
-    const soft = pool0.filter((c) => suitTop(c.suit) < 13);
-    const pool = soft.length > 0 ? soft : pool0;
+    const soft = safePool.filter((c) => suitTop(c.suit) < 13);
+    const pool = soft.length > 0 ? soft : safePool;
     const suit = shortestSuit(pool);
     const inSuit = pool.filter((c) => c.suit === suit);
     return lowest(inSuit.length > 0 ? inSuit : pool);
@@ -648,10 +664,14 @@ function leadAvoidance(
     for (const d of state.doubled) {
       if (!opponents.includes(d.by)) continue;
       if (count.accountedFor(d.card.rank, d.card.suit)) continue; // already played
+      if (dangerous.has(d.card.suit)) continue; // we hold higher — attacking risks catching the penalty
       oppDoubledSuits.add(d.card.suit);
     }
     const attack = followableAny.filter((c) => oppDoubledSuits.has(c.suit));
-    const base = attack.length > 0 ? attack : followableAny;
+    // Prefer non-dangerous suits even in the fallback pool.
+    const safeFol = followableAny.filter((c) => !dangerous.has(c.suit));
+    const fallback = safeFol.length > 0 ? safeFol : followableAny;
+    const base = attack.length > 0 ? attack : fallback;
     const suit = shortestSuit(base);
     const inSuit = base.filter((c) => c.suit === suit);
     return lowest(inSuit.length > 0 ? inSuit : base);

@@ -123,12 +123,12 @@ export default function App() {
         <MainMenu onPick={pick} onCalc={setScreen} onOnline={() => setScreen('online')} t={t} />
       )}
       {screen === 'online' && <OnlineScreen t={t} />}
-      {screen === 'tarneeb' && <TarneebScreen key={gameKey} t={t} />}
+      {screen === 'tarneeb' && <TarneebScreen key={gameKey} t={t} onExit={() => setScreen('menu')} />}
       {screen === 'trix' && (
-        <TrixScreen key={gameKey} t={t} mode="regular" partnership={partnership} />
+        <TrixScreen key={gameKey} t={t} mode="regular" partnership={partnership} onExit={() => setScreen('menu')} />
       )}
       {screen === 'trixComplex' && (
-        <TrixScreen key={gameKey} t={t} mode="complex" partnership={partnership} />
+        <TrixScreen key={gameKey} t={t} mode="complex" partnership={partnership} onExit={() => setScreen('menu')} />
       )}
       {screen === 'tarneebCalc' && <TarneebCalculator t={t} />}
       {screen === 'trixCalc' && <TrixCalculator t={t} />}

@@ -302,6 +302,24 @@ function chooseLead(state: TarneebState, seat: Seat, k: Knowledge, hand: readonl
   const dev = developLead(hand, k, trump);
   if (dev) return dev;
 
+  // D2: Defenders must NOT lead trump — it strips their own team's defensive
+  // trumps and hands control to the declarer. Broach the shortest side suit
+  // (even with an honour at risk) to preserve ruffing potential.
+  const isDefender = !isDeclarer && !isDeclarerPartner;
+  if (isDefender) {
+    const sideCards = nonTrump(hand, trump);
+    if (sideCards.length > 0) {
+      let bestSuit: Suit | null = null;
+      let bestLen = Infinity;
+      for (const s of ['C', 'D', 'H', 'S'] as const) {
+        if (s === trump) continue;
+        const len = hand.filter((c) => c.suit === s).length;
+        if (len > 0 && len < bestLen) { bestLen = len; bestSuit = s; }
+      }
+      if (bestSuit) return lowest(hand.filter((c) => c.suit === bestSuit!));
+    }
+  }
+
   // No safe side suit to broach. Prefer leading a trump over squandering an honour:
   // a partner leads low and lets the declarer keep trump control. The declarer,
   // though, holds its LAST trump in reserve for late control rather than burning it.

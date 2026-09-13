@@ -54,10 +54,12 @@ export function HandOverOverlay({
 export function GameOverOverlay({
   state,
   onNewGame,
+  onExit,
   t,
 }: {
   state: TarneebState;
   onNewGame: () => void;
+  onExit?: () => void;
   t: T;
 }) {
   if (state.winner === null) return null;
@@ -80,6 +82,11 @@ export function GameOverOverlay({
         <button type="button" className="primary-btn" onClick={onNewGame}>
           {t('newGame')}
         </button>
+        {onExit && (
+          <button type="button" className="secondary-btn" onClick={onExit}>
+            {t('menu')}
+          </button>
+        )}
       </div>
     </div>
   );
