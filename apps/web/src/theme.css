@@ -513,6 +513,7 @@ html, body, #root {
   .card.lg .corner .suit { font-size: 15px; }
   .card.lg .pip { font-size: 34px; }
   .card.md { width: 48px; height: 68px; }
+  .hand-dock { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
   .hand-card { margin-left: -28px; }
   .hand-card.suit-break { margin-left: 4px; }
   .hand-card.is-playable .card { transform: translateY(-7px); }

@@ -607,11 +607,27 @@ function leadAvoidance(
   let candidates = hand.filter((c) => !isPenalty(c) && !isDanger(c));
   if (candidates.length === 0) candidates = [...hand]; // only penalties left — forced
 
-  // Hard frozen-suit filter: never lead our/partner's doubled suit unless every
-  // single candidate is frozen (absolute last resort).
+  // Hard frozen-suit filter: never lead our/partner's doubled suit.
+  // When ALL non-penalty cards are frozen, prefer a low diamond (minor -10 penalty)
+  // over broaching a frozen suit. If no diamonds either, prefer leading our OWN
+  // frozen suit (we control the doubled card) over partner's.
   if (protect.size > 0) {
     const unfrozen = candidates.filter((c) => !protect.has(c.suit));
-    if (unfrozen.length > 0) candidates = unfrozen;
+    if (unfrozen.length > 0) {
+      candidates = unfrozen;
+    } else {
+      const lowDiamonds = hand.filter((c) => c.suit === 'D' && c.rank <= 9 && !protect.has('D'));
+      if (lowDiamonds.length > 0) {
+        candidates = lowDiamonds;
+      } else {
+        const ownFrozen = new Set<Suit>();
+        for (const d of state.doubled) {
+          if (d.by === seat && !wasPlayed(d.card)) ownFrozen.add(d.card.suit);
+        }
+        const ownOnly = candidates.filter((c) => ownFrozen.has(c.suit));
+        if (ownOnly.length > 0) candidates = ownOnly;
+      }
+    }
   }
 
   // Lead a genuinely LOW card so we LOSE the trick to an opponent (winning collects

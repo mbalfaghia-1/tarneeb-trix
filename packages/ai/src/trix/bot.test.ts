@@ -609,6 +609,34 @@ describe('trix partnership coordination', () => {
     expect(chosen(s)).toEqual(C(14, 'D'));
   });
 
+  it('leads a low diamond rather than partner\'s frozen suit when boxed in (Complex)', () => {
+    // Complex partnership; seat 0 doubled Q♣, seat 2 (us) doubled Q♥.
+    // Our hand: only clubs, hearts, and diamonds — clubs and hearts are frozen.
+    // Should lead a low diamond (-10 risk) instead of clubs (partner's frozen Q♣).
+    const s = trixPlay('complex', [C(6, 'C'), C(4, 'H'), C(3, 'D'), C(8, 'D')], [], {
+      partnership: true,
+      doubled: [
+        { card: C(12, 'C'), by: 0 },
+        { card: C(12, 'H'), by: 2 },
+      ],
+    });
+    expect(chosen(s).suit).toBe('D');
+  });
+
+  it('prefers own frozen suit over partner\'s when no escape (Complex)', () => {
+    // Complex partnership; seat 0 (us) doubled Q♣, seat 2 (partner) doubled Q♥.
+    // Our hand: only clubs and hearts — both frozen, no diamonds or spades.
+    // Should lead clubs (own frozen) not hearts (partner's frozen).
+    const s = trixPlay('complex', [C(6, 'C'), C(4, 'C'), C(3, 'H'), C(8, 'H')], [], {
+      partnership: true,
+      doubled: [
+        { card: C(12, 'C'), by: 0 },
+        { card: C(12, 'H'), by: 2 },
+      ],
+    });
+    expect(chosen(s).suit).toBe('C');
+  });
+
   it('does not lead a suit where our partner doubled a penalty (protects their cover)', () => {
     // K♥ contract; partner (seat 2) doubled the K♥. On lead we hold a low heart and
     // low clubs — leading hearts would burn partner's cover, so open clubs instead.
