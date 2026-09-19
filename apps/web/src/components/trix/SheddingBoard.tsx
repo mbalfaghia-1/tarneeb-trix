@@ -22,7 +22,7 @@ function ShedCol({ cards, suit }: { cards: Card[]; suit: Suit }) {
     const cardH = cardEl.offsetHeight;
     const availH = col.parentElement?.clientHeight ?? 400;
     const visiblePerCard = Math.max(cardH * 0.3, (availH - cardH) / (cards.length - 1));
-    setOverlap(cardH - visiblePerCard);
+    setOverlap(Math.max(0, cardH - visiblePerCard));
   }, [cards.length]);
 
   useLayoutEffect(measure, [measure]);

@@ -236,12 +236,19 @@ function pickAvoidanceCard(state: TrixState): Card {
       // rather than hoarding a low card we don't need.
       return duckBelow(legal, winTop, contract);
     }
-    // void → shed strategically. In Complex, dump diamonds to get diamond-void:
-    // eating -10 (or Q♦ at -25) now unlocks dumping K♥ (-150) on a future diamond
-    // trick, and signals our partner that we're out of diamonds.
-    if (contract === 'complex' || contract === 'diamonds') {
-      const diamonds = legal.filter((c) => c.suit === 'D');
-      if (diamonds.length > 0) return highest(diamonds);
+    // void → shed strategically. In Complex, dump a LOW diamond to get diamond-void
+    // ONLY when we hold K♥ or a queen: eating -10 now unlocks dumping K♥ (-150) or a
+    // queen on a future diamond trick. Never dump Q♦ itself (too costly as sacrifice).
+    // NEVER in a pure diamonds contract — there's no K♥ benefit, just giving our
+    // partner penalty points for nothing.
+    if (contract === 'complex') {
+      const hasBigPenalty = legal.some(
+        (c) => (c.suit === 'H' && c.rank === 13) || c.rank === 12,
+      );
+      if (hasBigPenalty) {
+        const lowDiamonds = legal.filter((c) => c.suit === 'D' && c.rank !== 12);
+        if (lowDiamonds.length > 0) return lowest(lowDiamonds);
+      }
     }
     return safeDiscard(legal, contract);
   }

@@ -609,6 +609,22 @@ describe('trix partnership coordination', () => {
     expect(chosen(s)).toEqual(C(14, 'D'));
   });
 
+  it('leads the LOWEST card in a suit, not a medium one (Queens)', () => {
+    // Queens partnership; bot on lead with 3♣, 6♣ plus other suits.
+    // Should lead 3♣ (lowest club), not 6♣. Leading higher wastes a card
+    // that could duck later.
+    const s = trixPlay(
+      'queens',
+      [C(3, 'C'), C(6, 'C'), C(5, 'H'), C(4, 'H'), C(7, 'D'), C(8, 'D')],
+      [],
+      { partnership: true },
+    );
+    const card = chosen(s);
+    if (card.suit === 'C') {
+      expect(card).toEqual(C(3, 'C'));
+    }
+  });
+
   it('leads a low diamond rather than partner\'s frozen suit when boxed in (Complex)', () => {
     // Complex partnership; seat 0 doubled Q♣, seat 2 (us) doubled Q♥.
     // Our hand: only clubs, hearts, and diamonds — clubs and hearts are frozen.
@@ -745,5 +761,23 @@ describe('trix partnership coordination', () => {
       { partnership: true },
     );
     expect(chosen(s)).toEqual(C(14, 'D'));
+  });
+
+  it('diamonds: does NOT dump diamonds onto partner trick when void in led suit', () => {
+    // Diamonds contract, partnership. Clubs led, partner (seat 2) is winning with
+    // 8♣. We are void in clubs and hold 7♦, 5♦, 3♥. Should NOT shed a diamond onto
+    // partner — use safeDiscard (3♥) instead. The "dump diamonds to get diamond-void"
+    // tactic only applies in Complex where it unlocks K♥ dumping.
+    const s = trixPlay(
+      'diamonds',
+      [C(7, 'D'), C(5, 'D'), C(3, 'H')],
+      [
+        [3, C(4, 'C')],
+        [1, C(2, 'C')],
+        [2, C(8, 'C')],
+      ],
+      { partnership: true },
+    );
+    expect(chosen(s)).toEqual(C(3, 'H'));
   });
 });
