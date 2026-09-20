@@ -663,6 +663,27 @@ describe('trix partnership coordination', () => {
     expect(chosen(s).suit).not.toBe('H');
   });
 
+  it('K♥ contract: leads hearts to flush K♥ when not holding A♥ or K♥', () => {
+    // K♥ contract; we hold low hearts, low clubs, no A♥ or K♥. Should lead a
+    // low heart to flush out K♥ before its holder gets void in other suits.
+    const s = trixPlay('kingOfHearts', [C(5, 'H'), C(3, 'H'), C(7, 'C'), C(4, 'S')], [], {
+      partnership: true,
+    });
+    expect(chosen(s).suit).toBe('H');
+  });
+
+  it('K♥ contract: does NOT lead hearts when holding A♥ (would catch K♥)', () => {
+    // K♥ contract; we hold A♥ — leading hearts risks catching K♥ ourselves.
+    const s = trixPlay('kingOfHearts', [C(14, 'H'), C(3, 'H'), C(7, 'C'), C(4, 'S')], []);
+    expect(chosen(s).suit).not.toBe('H');
+  });
+
+  it('K♥ contract: does NOT lead hearts when holding K♥ (would develop against us)', () => {
+    // K♥ contract; we hold K♥ — leading hearts develops the suit against us.
+    const s = trixPlay('kingOfHearts', [C(13, 'H'), C(3, 'H'), C(7, 'C'), C(4, 'S')], []);
+    expect(chosen(s).suit).not.toBe('H');
+  });
+
   it('partner winning and not last: sheds the highest safe card under them, keeps the low one', () => {
     // Queens; partner (seat 2) leads and is winning with K♠. Following at 2nd seat we
     // hold Q♠/9♠/3♠ — shed 9♠ (keep 3♠ as our best future duck; never add the Q♠).

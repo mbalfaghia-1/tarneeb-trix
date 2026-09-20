@@ -637,6 +637,24 @@ function leadAvoidance(
     }
   }
 
+  // K♥ flush: when K♥ is still live and we hold neither A♥ nor K♥, actively lead
+  // low hearts to force K♥ out. Leading other suits lets its holder get void and
+  // dump it onto us. Skip when our partner doubled K♥ (don't develop against them)
+  // or hearts is frozen.
+  if ((contract === 'kingOfHearts' || contract === 'complex') && khLive && !protect.has('H')) {
+    const weHoldKH = hand.some((c) => c.suit === 'H' && c.rank === 13);
+    const weHoldAH = hand.some((c) => c.suit === 'H' && c.rank === 14);
+    const partnerDoubledKH =
+      state.partnership &&
+      state.doubled.some((d) => d.card.suit === 'H' && d.card.rank === 13 && d.by === partner);
+    if (!weHoldKH && !weHoldAH && !partnerDoubledKH) {
+      const lowHearts = candidates.filter((c) => c.suit === 'H' && c.rank <= 9);
+      const safeHearts = lowHearts.filter(safeLowLead);
+      if (safeHearts.length > 0) return lowest(safeHearts);
+      if (lowHearts.length > 0) return lowest(lowHearts);
+    }
+  }
+
   // Lead a genuinely LOW card so we LOSE the trick to an opponent (winning collects
   // penalties, and once anyone is void they dump on us). Only lead a low card a non-void
   // opponent can still take; among those prefer suits outside a partner's doubled penalty,
