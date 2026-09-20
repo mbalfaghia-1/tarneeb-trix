@@ -46,12 +46,13 @@ export function TrixSeat({
       ? state.exposedTwos.filter((tw) => tw.holder === seat && !twoPlayed(tw.card.suit))
       : [];
 
-  // Penalty cards this seat revealed & doubled — shown only while the seat still
-  // holds the card (it disappears once the card has been played, like the 2s).
+  // Penalty cards this seat revealed & doubled — hidden during the doubling phase
+  // (all reveals happen together once everyone has decided), then shown while the
+  // seat still holds the card (disappears once played, like the 2s).
   const stillHolds = (c: { suit: Suit; rank: number }): boolean =>
     (state.hands[seat] ?? []).some((h) => h.suit === c.suit && h.rank === c.rank);
   const myDoubled =
-    state.phase === 'doubling' || state.phase === 'playing'
+    state.phase === 'playing'
       ? state.doubled.filter((d) => d.by === seat && stillHolds(d.card))
       : [];
 
