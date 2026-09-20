@@ -676,7 +676,13 @@ function leadAvoidance(
     const suitTop = (suit: Suit) =>
       Math.max(...hand.filter((c) => c.suit === suit).map((c) => c.rank));
     const soft = safePool.filter((c) => suitTop(c.suit) < 13);
-    const pool = soft.length > 0 ? soft : safePool;
+    const pool1 = soft.length > 0 ? soft : safePool;
+    // Prefer suits where NO opponent is void — a void opponent dumps penalties onto
+    // the trick, and our side risks catching them if no one else beats our card.
+    const someOppVoid = (suit: Suit) =>
+      opponents.some((o) => (state.voids[o] ?? []).includes(suit));
+    const noVoid = pool1.filter((c) => !someOppVoid(c.suit));
+    const pool = noVoid.length > 0 ? noVoid : pool1;
     const suit = shortestSuit(pool);
     const inSuit = pool.filter((c) => c.suit === suit);
     return lowest(inSuit.length > 0 ? inSuit : pool);

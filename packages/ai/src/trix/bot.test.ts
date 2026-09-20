@@ -542,6 +542,16 @@ describe('trix partnership coordination', () => {
     expect(chosen(s).suit).not.toBe('D');
   });
 
+  it('prefers a suit with no void opponent over one where an opponent is void', () => {
+    // Diamonds; seat 3 (Left) is void in clubs. We hold low clubs and low hearts.
+    // Even though safeLowLead says clubs is "safe" (Right could beat our card),
+    // prefer hearts where no opponent is void — avoids risk of catching diamond dumps.
+    const s = trixPlay('diamonds', [C(5, 'C'), C(3, 'C'), C(4, 'H'), C(2, 'H')], [], {
+      voids: [[], [], [], ['C']],
+    });
+    expect(chosen(s).suit).toBe('H');
+  });
+
   it('does not lead a suit whose queen WE doubled (want an opponent to lead it instead)', () => {
     // Queens; we (seat 0) doubled the Q♦. On lead with low diamonds (shortest) and low
     // clubs → open clubs, keeping diamonds for an opponent to lead so we can dump the Q♦.
