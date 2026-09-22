@@ -24,10 +24,10 @@ interface Deal {
 }
 interface SavedState {
   names: string[];
-  /** Team names for partnership: [players 1+3, players 2+4]. */
+  /** Team names for partnership: [players A+B, players C+D]. */
   teamNames: [string, string];
   mode: TrixMode;
-  /** Partnership scoring: teams are players 1+3 vs 2+4 (seats 0+2 vs 1+3). */
+  /** Partnership scoring: teams are A+B vs C+D (players 0+1 vs 2+3). */
   partnership: boolean;
   deals: Deal[];
 }
@@ -117,9 +117,9 @@ export function TrixCalculator({ t }: { t: T }) {
   if (needs.order && !orderValid) invalidReasons.push(t('needOrder'));
 
   const partnership = state.partnership;
-  // Teams follow the engine: seats 0+2 vs 1+3 → players 1+3 vs 2+4.
-  const teamTotals: [number, number] = [totals[0]! + totals[2]!, totals[1]! + totals[3]!];
-  const teamPair: [string, string] = [`${names[0]} + ${names[2]}`, `${names[1]} + ${names[3]}`];
+  // Teams: A+B vs C+D (players 0+1 vs 2+3).
+  const teamTotals: [number, number] = [totals[0]! + totals[1]!, totals[2]! + totals[3]!];
+  const teamPair: [string, string] = [`${names[0]} + ${names[1]}`, `${names[2]} + ${names[3]}`];
 
   const buildInputs = (): TrixDealInputs => {
     const inputs: TrixDealInputs = {};
