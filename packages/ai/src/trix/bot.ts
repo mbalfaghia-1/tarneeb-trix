@@ -7,18 +7,25 @@ import {
   sheddingPlayable,
   teamOf,
 } from '@tarneeb/engine';
+import { DEFAULT_TRIX_PARAMS, type TrixBotParams } from './params.js';
+
+export type { TrixBotParams } from './params.js';
+export { DEFAULT_TRIX_PARAMS } from './params.js';
 
 /**
  * Trix bot. Deterministic, public-info only. Covers contract selection, the four
  * avoidance trick-games, and the shedding contract, following the PDF's
  * per-contract tactics. Upgradeable (doubling + finer play) later.
  */
-export function chooseTrixAction(state: TrixState): TrixAction {
+export function chooseTrixAction(
+  state: TrixState,
+  params: TrixBotParams = DEFAULT_TRIX_PARAMS,
+): TrixAction {
   switch (state.phase) {
     case 'contract-select':
-      return { type: 'CHOOSE_CONTRACT', seat: state.king, contract: pickContract(state) };
+      return { type: 'CHOOSE_CONTRACT', seat: state.king, contract: pickContract(state, params) };
     case 'doubling':
-      return { type: 'SET_DOUBLE', seat: state.turn, cards: chooseDoubles(state) };
+      return { type: 'SET_DOUBLE', seat: state.turn, cards: chooseDoubles(state, params) };
     case 'playing':
       return { type: 'PLAY', seat: state.turn, card: pickAvoidanceCard(state) };
     case 'shedding':
@@ -40,11 +47,13 @@ export function chooseTrixAction(state: TrixState): TrixAction {
  *  - exactly 3 cards       → only if we are void in another suit (a discard escape
  *                            to dump the card if we do get stuck) — riskier.
  */
-function chooseDoubles(state: TrixState): Card[] {
+function chooseDoubles(state: TrixState, params: TrixBotParams): Card[] {
   const hand = state.hands[state.turn]!;
   const suitLen = (s: Suit) => hand.filter((c) => c.suit === s).length;
   const voidElsewhere = (s: Suit) => SUITS_ORDER.some((x) => x !== s && suitLen(x) === 0);
-  const confident = (s: Suit) => suitLen(s) >= 4 || (suitLen(s) === 3 && voidElsewhere(s));
+  const confident = (s: Suit) =>
+    suitLen(s) >= params.doubleMinSafeLength ||
+    (suitLen(s) === params.doubleRiskyLength && voidElsewhere(s));
 
   const kh = hand.find((c) => c.suit === 'H' && c.rank === 13);
   const doubleKH = kh && confident('H') ? [kh] : [];
@@ -80,13 +89,13 @@ function shortestSuit(hand: readonly Card[]): Suit {
 
 // --- contract selection ----------------------------------------------------
 
-function pickContract(state: TrixState): TrixContract {
+function pickContract(state: TrixState, params: TrixBotParams): TrixContract {
   const hand = state.hands[state.king]!;
   const remaining = contractsForMode(state.mode).filter((c) => !state.usedContracts.includes(c));
   let best = remaining[0]!;
   let bestFit = -Infinity;
   for (const c of remaining) {
-    const fit = contractFit(hand, c);
+    const fit = contractFit(hand, c, params);
     if (fit > bestFit) {
       bestFit = fit;
       best = c;
@@ -96,7 +105,7 @@ function pickContract(state: TrixState): TrixContract {
 }
 
 /** Higher = better suited to play this contract now (least penalty risk). */
-function contractFit(hand: readonly Card[], contract: TrixContract): number {
+function contractFit(hand: readonly Card[], contract: TrixContract, params: TrixBotParams): number {
   const lows = hand.filter((c) => c.rank <= 6).length;
   const highs = hand.filter((c) => c.rank >= 12).length;
   const jacks = hand.filter((c) => c.rank === 11).length;
@@ -117,11 +126,24 @@ function contractFit(hand: readonly Card[], contract: TrixContract): number {
     case 'trix':
       return highs + jacks - lows; // mostly-high hand sheds well
     case 'queens':
-      return (queens === 0 ? 6 : 3 - queens * 2) + (hasShort ? 2 : 0);
+      return (
+        (queens === 0
+          ? params.queensZeroBonus
+          : params.queensBaseWithSome - queens * params.queensPerQueenPenalty) +
+        (hasShort ? params.queensShortSuitBonus : 0)
+      );
     case 'kingOfHearts':
-      return hasKH ? (hearts >= 4 ? 1 : -3) : 5;
+      return hasKH
+        ? hearts >= params.kohSafeHeartsLength
+          ? params.kohWithEnoughHearts
+          : params.kohWithFewHearts
+        : params.kohWithoutCard;
     case 'diamonds':
-      return diamonds.length === 0 ? 6 : 4 - highDiamonds * 2 - Math.max(0, diamonds.length - 6);
+      return diamonds.length === 0
+        ? params.diamondsZeroBonus
+        : params.diamondsBaseScore -
+            highDiamonds * params.diamondsHighCardWeight -
+            Math.max(0, diamonds.length - params.diamondsLengthSoftCap);
   }
 }
 
