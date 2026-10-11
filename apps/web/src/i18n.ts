@@ -120,6 +120,8 @@ const en: Dict = {
   gameType: 'Game type',
   modeRegular: 'Regular',
   modeComplex: 'Complex',
+  startingPlayer: 'Starting player',
+  kingdomOf: '{name}\'s kingdom',
   gameComplete: 'Game complete',
   // online multiplayer
   playOnline: 'Play Online',
@@ -200,7 +202,7 @@ const ar: Dict = {
   partnershipQ: 'شراكة أم فردي؟',
   alone: 'فردي',
   partners: 'شراكة',
-  yourTeamWins: 'فريقك يفوز!',
+  yourTeamWins: 'مبروك الفوز!',
   theyWin: 'الفريق الآخر يفوز',
   team: 'فريق',
   // trix
@@ -275,6 +277,8 @@ const ar: Dict = {
   gameType: 'نوع اللعبة',
   modeRegular: 'عادي',
   modeComplex: 'كومبلكس',
+  startingPlayer: 'اللاعب الأول',
+  kingdomOf: 'مملكة {name}',
   gameComplete: 'انتهت اللعبة',
   // online multiplayer
   playOnline: 'العب أونلاين',

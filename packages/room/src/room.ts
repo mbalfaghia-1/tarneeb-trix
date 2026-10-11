@@ -129,7 +129,9 @@ export class Room<S, A> implements RoomHandle {
   vacateSeat(seat: Seat): boolean {
     const o = this.occ[seat];
     if (!o || o.kind === 'bot') return false;
-    this.occ[seat] = { kind: 'bot', name: `Bot ${seat + 1}` }; // relabel so others see it's a bot now
+    const usedNames = new Set(this.occ.filter((o) => o.kind === 'bot').map((o) => o.name));
+    const botName = BOT_NAMES.find((n) => !usedNames.has(n)) ?? `Bot ${seat + 1}`;
+    this.occ[seat] = { kind: 'bot', name: botName };
     if (!this.paced) this.advance(); // unpaced: if it's now this seat's turn, the bot plays on
     return true;
   }
@@ -201,13 +203,16 @@ export class Room<S, A> implements RoomHandle {
   }
 }
 
+const BOT_NAMES = ['الصقر', 'الذيب', 'الأسد', 'النمر'];
+
 /** Build occupants for seats 0..3: humans in join order, the rest filled with bots. */
 function seatOccupants(humans: readonly HumanEntry[]): SeatOccupant[] {
+  let botIdx = 0;
   return SEATS.map((s) => {
     const h = humans[s];
     return h
       ? { kind: 'human' as const, playerId: h.playerId, name: h.name }
-      : { kind: 'bot' as const, name: `Bot ${s + 1}` };
+      : { kind: 'bot' as const, name: BOT_NAMES[botIdx++] ?? `Bot ${s + 1}` };
   });
 }
 

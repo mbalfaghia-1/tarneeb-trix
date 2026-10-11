@@ -1,4 +1,4 @@
-import { RANK_LABEL, SUIT_IS_RED, SUIT_SYMBOL, type Seat, type Suit, type TrixState } from '@tarneeb/engine';
+import { RANK_LABEL, SUIT_IS_RED, SUIT_SYMBOL, scoreTrixDeal, type Seat, type Suit, type TrixState } from '@tarneeb/engine';
 import { posOf } from '../../game/layout';
 import { turnName } from '../../game/labels';
 import type { T } from '../../i18n';
@@ -35,6 +35,20 @@ export function TrixSeat({
   const isKing = state.king === seat;
   const tricks = state.phase === 'playing' ? state.tricksTaken[seat] ?? 0 : 0;
   const finished = state.finishOrder.indexOf(seat);
+
+  // Running penalty tally for Complex deals (uses the real scoring function so
+  // doubling bonuses/penalties are reflected immediately).
+  const complexPenalty = (() => {
+    if (state.phase !== 'playing' || state.contract !== 'complex') return null;
+    const delta = scoreTrixDeal('complex', {
+      captured: state.captured,
+      tricksTaken: state.tricksTaken,
+      finishOrder: [],
+      doubled: state.doubled,
+      doubledLeaders: state.doubledLeaders,
+    });
+    return delta[seat] ?? 0;
+  })();
 
   // Exposed 2s this seat still holds (removed once played into the layout).
   const twoPlayed = (suit: Suit): boolean => {
@@ -83,7 +97,16 @@ export function TrixSeat({
         <span className="name">{label}</span>
         {isKing && <span className="badge-declarer">👑</span>}
       </div>
-      {state.phase === 'playing' && <div className="trix-tricks">🂠 {tricks}</div>}
+      {state.phase === 'playing' && state.contract === 'diamonds' && (
+        <div className="trix-tricks">♦ {(state.captured[seat] ?? []).filter((c) => c.suit === 'D').length}</div>
+      )}
+      {state.phase === 'playing' && state.contract === 'queens' && (
+        <div className="trix-tricks">♛ {(state.captured[seat] ?? []).filter((c) => c.rank === 12).length}</div>
+      )}
+      {state.phase === 'playing' && state.contract !== 'diamonds' && state.contract !== 'queens' && (
+        <div className="trix-tricks">🂠 {tricks}</div>
+      )}
+      {complexPenalty !== null && <div className="trix-penalty">{complexPenalty}</div>}
       {state.phase === 'shedding' && finished >= 0 && (
         <div className="trix-finish">#{finished + 1}</div>
       )}

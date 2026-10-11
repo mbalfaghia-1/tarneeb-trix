@@ -742,6 +742,7 @@ html, body, #root {
   background: var(--accent); color: #10241b; font-weight: 800;
   padding: 3px 10px; border-radius: 999px; font-size: 13px; white-space: nowrap;
 }
+.kingdom-king { font-size: 13px; font-weight: 600; }
 .kingdom-remaining { color: var(--text-dim); font-size: 13px; }
 
 .calc-form {
@@ -839,6 +840,11 @@ html, body, #root {
   border-radius: 10px; padding: 1px 8px; color: var(--text);
 }
 .trix-finish { color: var(--accent); font-weight: 700; }
+.trix-penalty {
+  font-size: 12px; font-weight: 700; padding: 1px 8px;
+  border-radius: 10px; background: var(--surface); border: 1px solid var(--border);
+  color: #d94; /* amber for negative running score */
+}
 
 /* Exposed 2s shown as small badges on the holder's seat. */
 .seat-twos { display: flex; gap: 4px; }

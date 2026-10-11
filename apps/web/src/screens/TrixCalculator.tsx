@@ -29,6 +29,8 @@ interface SavedState {
   mode: TrixMode;
   /** Partnership scoring: teams are A+B vs C+D (players 0+1 vs 2+3). */
   partnership: boolean;
+  /** Which seat starts as the first king (counter-clockwise rotation). */
+  startPlayer: Seat;
   deals: Deal[];
 }
 
@@ -40,12 +42,12 @@ function load(): SavedState {
     if (raw) {
       const s = JSON.parse(raw) as SavedState;
       // Migrate pre-partnership / pre-team-name saves.
-      return { ...s, partnership: s.partnership ?? false, teamNames: s.teamNames ?? ['', ''] };
+      return { ...s, partnership: s.partnership ?? false, teamNames: s.teamNames ?? ['', ''], startPlayer: s.startPlayer ?? (0 as Seat) };
     }
   } catch {
     /* ignore */
   }
-  return { names: ['', '', '', ''], teamNames: ['', ''], mode: 'regular', partnership: false, deals: [] };
+  return { names: ['', '', '', ''], teamNames: ['', ''], mode: 'regular', partnership: false, startPlayer: 0 as Seat, deals: [] };
 }
 
 const zeros = (): number[] => [0, 0, 0, 0];
@@ -81,8 +83,10 @@ export function TrixCalculator({ t }: { t: T }) {
   const best = Math.max(...totals);
 
   // Game structure: 4 kingdoms, each contract played once per kingdom.
+  // Counter-clockwise rotation: each kingdom's king is (startPlayer - kingdomIndex) mod 4.
   const perKingdom = contractsFor(state.mode).length;
   const kingdomIndex = Math.floor(state.deals.length / perKingdom); // 0-based; === TOTAL_KINGDOMS when done
+  const currentKing = ((state.startPlayer - kingdomIndex % 4) + 4) % 4 as Seat;
   const gameComplete = state.deals.length >= perKingdom * TOTAL_KINGDOMS;
   const playedThisKingdom = gameComplete
     ? []
@@ -177,6 +181,8 @@ export function TrixCalculator({ t }: { t: T }) {
   const setMode = (mode: TrixMode) => setState((s) => (s.deals.length === 0 ? { ...s, mode } : s));
   const setPartnership = (partnership: boolean) =>
     setState((s) => (s.deals.length === 0 ? { ...s, partnership } : s));
+  const setStartPlayer = (sp: Seat) =>
+    setState((s) => (s.deals.length === 0 ? { ...s, startPlayer: sp } : s));
   const setName = (i: number, v: string) =>
     setState((s) => {
       const n = s.names.slice();
@@ -263,6 +269,22 @@ export function TrixCalculator({ t }: { t: T }) {
             ))}
           </div>
         </div>
+        <div className="calc-field">
+          <label>{t('startingPlayer')}</label>
+          <div className="seg seg4">
+            {SEATS4.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={state.startPlayer === s ? 'on' : ''}
+                disabled={state.deals.length > 0}
+                onClick={() => setStartPlayer(s)}
+              >
+                {names[s]}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {partnership && (
@@ -309,6 +331,7 @@ export function TrixCalculator({ t }: { t: T }) {
           ) : (
             <>
               <span className="kingdom-badge">{t('kingdom', { n: kingdomIndex + 1 })}</span>
+              <span className="kingdom-king">{t('kingdomOf', { name: names[currentKing] ?? '' })}</span>
               <span className="kingdom-remaining">
                 {available.map((c) => t(`c_${c}` as never)).join('  ·  ')}
               </span>
@@ -517,7 +540,6 @@ export function TrixCalculator({ t }: { t: T }) {
 
       <div className="calc-history">
         <div className="calc-history-head">
-          <span>{t('dealsHistory')}</span>
           <span className="calc-history-btns">
             <button type="button" onClick={undo} disabled={state.deals.length === 0}>
               {t('undo')}
