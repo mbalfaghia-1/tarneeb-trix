@@ -15,7 +15,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "sim": "tsx src/sim/run.ts"
+    "sim": "tsx src/sim/run.ts",
+    "tune": "tsx src/sim/tune.ts"
   },
   "dependencies": {
     "@tarneeb/engine": "*"
