@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tarneeb/room": "*",
+    "jose": "^5.9.6",
     "ws": "^8.18.0"
   },
   "devDependencies": {

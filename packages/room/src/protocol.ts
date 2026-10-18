@@ -26,7 +26,12 @@ export type ClientMsg =
   // public matchmaking (play with strangers)
   | { readonly t: 'quickmatch'; readonly playerId: PlayerId; readonly name: string; readonly game: GameKind; readonly partnership?: boolean }
   | { readonly t: 'matchnow'; readonly playerId: PlayerId; readonly game: GameKind; readonly partnership?: boolean }
-  | { readonly t: 'cancelmatch'; readonly playerId: PlayerId; readonly game: GameKind; readonly partnership?: boolean };
+  | { readonly t: 'cancelmatch'; readonly playerId: PlayerId; readonly game: GameKind; readonly partnership?: boolean }
+  // Signed-in identity (optional — guests never send this). Ties this connection to a
+  // real account so the server can reject any other message whose playerId doesn't match
+  // that account's id, preventing one client from spoofing another signed-in player's
+  // stable identity on the public leaderboard.
+  | { readonly t: 'authenticate'; readonly sessionToken: string };
 
 export type ServerMsg =
   | { readonly t: 'lobby'; readonly state: LobbyState }

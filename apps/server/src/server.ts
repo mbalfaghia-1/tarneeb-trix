@@ -8,12 +8,17 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { ClientMsg, GameKind, ServerMsg } from '@tarneeb/room';
 import { Lobby } from './lobby.js';
 import { openRankingsDb, type RankingsDb } from './db.js';
+import { openAuthDb, type AuthDb } from './auth.js';
+import { verifyGoogleIdToken } from './google.js';
 
 interface Conn {
   socket: WebSocket;
   playerId: string | null;
   code: string | null;
   queue: { game: GameKind; partnership: boolean } | null;
+  /** Set once this connection sends a valid 'authenticate' message. When set, every other
+   *  message's playerId must match it — see the guard at the top of handle(). */
+  accountId: string | null;
 }
 
 /** How long a quick-match waits for more humans before filling seats with bots. */
@@ -27,40 +32,195 @@ const NEEDED = 4;
 const BOT_STEP_MS = 350;
 const DEAL_PAUSE_MS = 2800;
 
-/** Where the rankings DB lives: a real file by default (override via DB_PATH, e.g. the
- *  Fly volume mount), or ':memory:' for tests so they never touch disk / share state. */
+/** Where the rankings/auth DBs live: a real file by default (override via DB_PATH, e.g.
+ *  the Fly volume mount), or ':memory:' for tests so they never touch disk / share state. */
 function defaultDbPath(): string {
   return process.env.DB_PATH ?? './data/rankings.db';
 }
 
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MAX = 10; // signup/login/google attempts per IP per window — scrypt is deliberately expensive
+
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  res.writeHead(status, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+  res.end(JSON.stringify(body));
+}
+
+function clientIp(req: IncomingMessage): string {
+  const fwd = req.headers['x-forwarded-for'];
+  if (typeof fwd === 'string' && fwd.length > 0) return fwd.split(',')[0]!.trim();
+  return req.socket.remoteAddress ?? 'unknown';
+}
+
+function bearerToken(req: IncomingMessage): string | null {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) return null;
+  return header.slice('Bearer '.length).trim() || null;
+}
+
+function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk: Buffer) => {
+      data += chunk;
+      if (data.length > 10_000) req.destroy(new Error('body too large'));
+    });
+    req.on('end', () => {
+      try {
+        const parsed: unknown = data ? JSON.parse(data) : {};
+        resolve(typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {});
+      } catch {
+        reject(new Error('invalid JSON body'));
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+
 export function createGameServer(port: number, dbPath: string = defaultDbPath()): WebSocketServer {
   const db: RankingsDb = openRankingsDb(dbPath);
+  const authDb: AuthDb = openAuthDb(dbPath);
+  const googleClientId = process.env.GOOGLE_CLIENT_ID ?? '';
   const recordedResults = new Set<string>(); // table codes already written, so pump() can't double-record
 
-  const handleHttp = (req: IncomingMessage, res: ServerResponse): void => {
+  const rateLimits = new Map<string, { count: number; windowStart: number }>();
+  const rateLimitSweep = setInterval(() => {
+    const cutoff = Date.now() - RATE_LIMIT_WINDOW_MS;
+    for (const [ip, entry] of rateLimits) if (entry.windowStart < cutoff) rateLimits.delete(ip);
+  }, RATE_LIMIT_WINDOW_MS);
+  rateLimitSweep.unref?.();
+  const checkRateLimit = (ip: string): boolean => {
+    const now = Date.now();
+    const entry = rateLimits.get(ip);
+    if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+      rateLimits.set(ip, { count: 1, windowStart: now });
+      return true;
+    }
+    entry.count++;
+    return entry.count <= RATE_LIMIT_MAX;
+  };
+
+  const handleHttp = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+    // JSON bodies + a custom Authorization header force the browser to preflight —
+    // every /auth/* call is silently blocked without this.
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'access-control-allow-origin': '*',
+        'access-control-allow-methods': 'GET, POST, OPTIONS',
+        'access-control-allow-headers': 'content-type, authorization',
+      });
+      res.end();
+      return;
+    }
+
     const url = new URL(req.url ?? '/', 'http://x');
+
     if (req.method === 'GET' && url.pathname === '/rankings') {
       const game = url.searchParams.get('game') as GameKind | null;
       const rows = db.leaderboard(game && game !== ('' as GameKind) ? game : null);
-      res.writeHead(200, {
-        'content-type': 'application/json',
-        // Public, read-only leaderboard — fine to fetch cross-origin from the Vercel web app.
-        'access-control-allow-origin': '*',
-      });
-      res.end(JSON.stringify({ players: rows }));
+      sendJson(res, 200, { players: rows });
       return;
     }
+
+    if (req.method === 'GET' && url.pathname === '/auth/me') {
+      const token = bearerToken(req);
+      const account = token ? authDb.resolveSession(token) : null;
+      if (!account) {
+        sendJson(res, 401, { error: 'invalid' });
+        return;
+      }
+      sendJson(res, 200, { account });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/auth/logout') {
+      const token = bearerToken(req);
+      if (token) authDb.deleteSession(token); // best-effort, idempotent either way
+      res.writeHead(204, { 'access-control-allow-origin': '*' });
+      res.end();
+      return;
+    }
+
+    if (req.method === 'POST' && (url.pathname === '/auth/signup' || url.pathname === '/auth/login')) {
+      if (!checkRateLimit(clientIp(req))) {
+        sendJson(res, 429, { error: 'rateLimited' });
+        return;
+      }
+      let body: Record<string, unknown>;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'invalidInput', message: 'malformed request body' });
+        return;
+      }
+      const email = str(body.email);
+      const password = str(body.password);
+      const result =
+        url.pathname === '/auth/signup'
+          ? await authDb.signupPassword(email, password, str(body.name))
+          : await authDb.loginPassword(email, password);
+      if (result.kind !== 'ok') {
+        const status = result.kind === 'invalidInput' ? 400 : result.kind === 'emailTaken' ? 409 : 401;
+        sendJson(res, status, result);
+        return;
+      }
+      const session = authDb.createSession(result.account.accountId);
+      sendJson(res, 200, { token: session.token, expiresAt: session.expiresAt, account: result.account });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/auth/google') {
+      if (!checkRateLimit(clientIp(req))) {
+        sendJson(res, 429, { error: 'rateLimited' });
+        return;
+      }
+      let body: Record<string, unknown>;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'invalidInput', message: 'malformed request body' });
+        return;
+      }
+      const idToken = str(body.idToken);
+      const identity = idToken && googleClientId ? await verifyGoogleIdToken(idToken, googleClientId) : null;
+      if (!identity) {
+        sendJson(res, 401, { error: 'invalidToken' });
+        return;
+      }
+      const result = authDb.findOrCreateGoogleAccount(identity.sub, identity.email, identity.name);
+      if (result.kind !== 'ok') {
+        sendJson(res, 409, result);
+        return;
+      }
+      const session = authDb.createSession(result.account.accountId);
+      sendJson(res, 200, {
+        token: session.token,
+        expiresAt: session.expiresAt,
+        account: result.account,
+        isNew: result.isNew,
+      });
+      return;
+    }
+
     res.writeHead(404, { 'content-type': 'text/plain' });
     res.end('not found');
   };
 
-  const httpServer = createServer(handleHttp);
+  const httpServer = createServer((req, res) => {
+    handleHttp(req, res).catch(() => {
+      if (!res.headersSent) sendJson(res, 500, { error: 'internal' });
+    });
+  });
   const wss = new WebSocketServer({ server: httpServer });
   // `ws` does NOT close an externally-provided server on wss.close() (it may be shared) —
   // cascade it ourselves so callers can still just call wss.close() like before.
   wss.on('close', () => {
     httpServer.close();
+    clearInterval(rateLimitSweep);
     db.close();
+    authDb.close();
   });
   const lobby = new Lobby();
   const conns = new Map<WebSocket, Conn>();
@@ -241,7 +401,23 @@ export function createGameServer(port: number, dbPath: string = defaultDbPath())
   }
 
   const handle = (conn: Conn, msg: ClientMsg) => {
+    // Once a connection has authenticated, every other message must claim the SAME
+    // playerId as the account it authenticated as — otherwise a signed-in connection
+    // could spoof another player's stable id on the public leaderboard. Guests (who never
+    // send 'authenticate') are entirely unaffected: conn.accountId stays null forever.
+    if (conn.accountId !== null && msg.t !== 'authenticate' && msg.playerId !== conn.accountId) {
+      throw new Error('playerId does not match the authenticated account');
+    }
     switch (msg.t) {
+      case 'authenticate': {
+        const account = authDb.resolveSession(msg.sessionToken);
+        if (!account) {
+          send(conn.socket, { t: 'error', message: 'invalid or expired session' });
+          break;
+        }
+        conn.accountId = account.accountId;
+        break;
+      }
       case 'create': {
         const code = lobby.createTable(
           { playerId: msg.playerId, name: msg.name },
@@ -324,7 +500,7 @@ export function createGameServer(port: number, dbPath: string = defaultDbPath())
   };
 
   wss.on('connection', (socket: WebSocket) => {
-    const conn: Conn = { socket, playerId: null, code: null, queue: null };
+    const conn: Conn = { socket, playerId: null, code: null, queue: null, accountId: null };
     conns.set(socket, conn);
     broadcastPresence();
 

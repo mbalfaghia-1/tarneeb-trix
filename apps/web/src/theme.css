@@ -611,6 +611,14 @@ html, body, #root {
   border-color: var(--accent);
   background: linear-gradient(160deg, #5c4a24, #352614);
 }
+.account-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--surface);
+}
+.account-name { font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-signin-btn { align-self: center; }
+.google-btn-slot { display: flex; justify-content: center; min-height: 44px; }
 
 .online {
   flex: 1; display: flex; align-items: flex-start; justify-content: center;

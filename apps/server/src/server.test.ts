@@ -112,3 +112,164 @@ describe('game server over WebSocket', () => {
     }
   });
 });
+
+interface AuthResponse {
+  token: string;
+  expiresAt: number;
+  account: { accountId: string; email: string; name: string };
+}
+
+describe('HTTP /auth/* routes', () => {
+  it('answers an OPTIONS preflight with the headers a browser needs', async () => {
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    try {
+      const res = await fetch(`http://localhost:${port}/auth/signup`, { method: 'OPTIONS' });
+      expect(res.status).toBe(204);
+      expect(res.headers.get('access-control-allow-origin')).toBe('*');
+      expect(res.headers.get('access-control-allow-methods')).toContain('POST');
+      expect(res.headers.get('access-control-allow-headers')).toContain('authorization');
+    } finally {
+      wss.close();
+    }
+  });
+
+  it('signs up, logs in, restores via /auth/me, then logs out and revokes the session', async () => {
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    const base = `http://localhost:${port}`;
+    try {
+      const signupRes = await fetch(`${base}/auth/signup`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'integration@example.com', password: 'password123', name: 'Integration' }),
+      });
+      expect(signupRes.status).toBe(200);
+      const signup = (await signupRes.json()) as AuthResponse;
+      expect(signup.account.email).toBe('integration@example.com');
+
+      const meRes = await fetch(`${base}/auth/me`, { headers: { authorization: `Bearer ${signup.token}` } });
+      expect(meRes.status).toBe(200);
+      const me = (await meRes.json()) as { account: AuthResponse['account'] };
+      expect(me.account.accountId).toBe(signup.account.accountId);
+
+      const loginRes = await fetch(`${base}/auth/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'integration@example.com', password: 'password123' }),
+      });
+      expect(loginRes.status).toBe(200);
+      const login = (await loginRes.json()) as AuthResponse;
+      expect(login.account.accountId).toBe(signup.account.accountId);
+
+      const logoutRes = await fetch(`${base}/auth/logout`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${login.token}` },
+      });
+      expect(logoutRes.status).toBe(204);
+
+      // The logged-out token is now dead; the session from signup (a different token) is untouched.
+      const meAfterLogout = await fetch(`${base}/auth/me`, { headers: { authorization: `Bearer ${login.token}` } });
+      expect(meAfterLogout.status).toBe(401);
+      const meStillValid = await fetch(`${base}/auth/me`, { headers: { authorization: `Bearer ${signup.token}` } });
+      expect(meStillValid.status).toBe(200);
+    } finally {
+      wss.close();
+    }
+  });
+
+  it('rejects a second signup with an already-registered email over HTTP', async () => {
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    const base = `http://localhost:${port}`;
+    const signup = (email: string) =>
+      fetch(`${base}/auth/signup`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, password: 'password123', name: 'Name' }),
+      });
+    try {
+      expect((await signup('dup@example.com')).status).toBe(200);
+      expect((await signup('dup@example.com')).status).toBe(409);
+    } finally {
+      wss.close();
+    }
+  });
+
+  it('GET /auth/me with no/invalid token returns a clean 401, not a crash', async () => {
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    try {
+      const noToken = await fetch(`http://localhost:${port}/auth/me`);
+      expect(noToken.status).toBe(401);
+      const badToken = await fetch(`http://localhost:${port}/auth/me`, {
+        headers: { authorization: 'Bearer not-a-real-token' },
+      });
+      expect(badToken.status).toBe(401);
+    } finally {
+      wss.close();
+    }
+  });
+});
+
+describe('WebSocket authenticate: anti-spoofing guard', () => {
+  it('accepts messages whose playerId matches the authenticated account', async () => {
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    try {
+      const signupRes = await fetch(`http://localhost:${port}/auth/signup`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'owner@example.com', password: 'password123', name: 'Owner' }),
+      });
+      const { token, account } = (await signupRes.json()) as AuthResponse;
+
+      const ws = await connect(port);
+      send(ws, { t: 'authenticate', sessionToken: token });
+      send(ws, { t: 'create', playerId: account.accountId, name: 'Owner', game: 'tarneeb' });
+      const created = (await nextMsg(ws, (m) => m.t === 'lobby')) as Extract<ServerMsg, { t: 'lobby' }>;
+      expect(created.state.seats[0]!.kind).toBe('human'); // accepted — no spoofing involved
+      ws.close();
+    } finally {
+      wss.close();
+    }
+  });
+
+  it('rejects a message whose playerId does NOT match the authenticated account', async () => {
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    try {
+      const signupRes = await fetch(`http://localhost:${port}/auth/signup`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'victim@example.com', password: 'password123', name: 'Victim' }),
+      });
+      const { token } = (await signupRes.json()) as AuthResponse;
+
+      const ws = await connect(port);
+      send(ws, { t: 'authenticate', sessionToken: token });
+      // Attempt to act as a completely different (someone else's) playerId.
+      send(ws, { t: 'create', playerId: 'someone-elses-account-id', name: 'Spoofed', game: 'tarneeb' });
+      const err = (await nextMsg(ws, (m) => m.t === 'error')) as Extract<ServerMsg, { t: 'error' }>;
+      expect(err.message).toContain('playerId');
+      ws.close();
+    } finally {
+      wss.close();
+    }
+  });
+
+  it('leaves unauthenticated guest connections completely unaffected', async () => {
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    try {
+      const ws = await connect(port);
+      // No 'authenticate' message sent at all — any playerId string is accepted, as today.
+      send(ws, { t: 'create', playerId: 'random-guest-id', name: 'Guest', game: 'tarneeb' });
+      const created = (await nextMsg(ws, (m) => m.t === 'lobby')) as Extract<ServerMsg, { t: 'lobby' }>;
+      expect(created.state.seats[0]!.kind).toBe('human');
+      ws.close();
+    } finally {
+      wss.close();
+    }
+  });
+});

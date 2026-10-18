@@ -13,6 +13,16 @@ const SERVER_URL =
   (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_SERVER_URL ||
   'ws://localhost:8787';
 
+/** Set by useAuth.ts on sign-in (and read here so a signed-in connection proves its
+ *  identity to the server — see the matching playerId-spoofing guard in server.ts). */
+function loadSessionToken(): string | null {
+  try {
+    return localStorage.getItem('tarneeb.sessionToken');
+  } catch {
+    return null;
+  }
+}
+
 /** A stable per-device player id so the same person keeps their seat across reloads. */
 function loadPlayerId(): string {
   const rnd = () => Math.random().toString(36).slice(2, 10);
@@ -101,6 +111,11 @@ export function useOnlineGame(): OnlineGame {
       if (disposed) return;
       setStatus('online');
       setError(null);
+      // If signed in, prove it to the server so it can reject any later message that
+      // claims a different playerId (see the anti-spoofing guard in server.ts). Guests
+      // have no token and simply skip this — completely unaffected, same as today.
+      const sessionToken = loadSessionToken();
+      if (sessionToken) socket.send(JSON.stringify({ t: 'authenticate', sessionToken }));
       // Re-attach to an in-progress table after a reconnect/reload.
       if (code.current) socket.send(JSON.stringify({ t: 'hello', playerId: me.current, code: code.current }));
       for (const m of queue.current) socket.send(JSON.stringify(m));

@@ -8,8 +8,10 @@ import { TarneebCalculator } from './screens/TarneebCalculator';
 import { TrixCalculator } from './screens/TrixCalculator';
 import { OnlineScreen } from './screens/OnlineScreen';
 import { RankingsScreen } from './screens/RankingsScreen';
+import { SignInScreen } from './screens/SignInScreen';
+import { useAuth } from './game/useAuth';
 
-type Screen = 'menu' | GameId | CalcId | 'online' | 'rankings';
+type Screen = 'menu' | GameId | CalcId | 'online' | 'rankings' | 'signin';
 
 export default function App() {
   const [lang, setLang] = useState<Lang>('en');
@@ -28,6 +30,7 @@ export default function App() {
   const [pending, setPending] = useState<GameId | null>(null); // awaiting partnership choice
   const [partnership, setPartnership] = useState(false);
   const t = makeT(lang);
+  const auth = useAuth();
 
   useEffect(() => {
     primeAudio();
@@ -64,7 +67,9 @@ export default function App() {
                 ? t('playOnline')
                 : screen === 'rankings'
                   ? t('rankings')
-                  : t('chooseGame');
+                  : screen === 'signin'
+                    ? t('signIn')
+                    : t('chooseGame');
 
   const pick = (g: GameId) => {
     if (g === 'tarneeb') {
@@ -128,11 +133,14 @@ export default function App() {
           onCalc={setScreen}
           onOnline={() => setScreen('online')}
           onRankings={() => setScreen('rankings')}
+          onSignIn={() => setScreen('signin')}
+          auth={auth}
           t={t}
         />
       )}
       {screen === 'online' && <OnlineScreen t={t} onRankings={() => setScreen('rankings')} />}
       {screen === 'rankings' && <RankingsScreen t={t} />}
+      {screen === 'signin' && <SignInScreen auth={auth} onDone={() => setScreen('menu')} t={t} />}
       {screen === 'tarneeb' && <TarneebScreen key={gameKey} t={t} onExit={() => setScreen('menu')} />}
       {screen === 'trix' && (
         <TrixScreen key={gameKey} t={t} mode="regular" partnership={partnership} onExit={() => setScreen('menu')} />

@@ -1,5 +1,6 @@
 import type { T } from '../i18n';
 import { loadRecord } from '../game/record';
+import type { AuthState } from '../game/useAuth';
 
 export type GameId = 'tarneeb' | 'trix' | 'trixComplex';
 export type CalcId = 'tarneebCalc' | 'trixCalc';
@@ -9,12 +10,16 @@ export function MainMenu({
   onCalc,
   onOnline,
   onRankings,
+  onSignIn,
+  auth,
   t,
 }: {
   onPick: (g: GameId) => void;
   onCalc: (c: CalcId) => void;
   onOnline: () => void;
   onRankings: () => void;
+  onSignIn: () => void;
+  auth: AuthState;
   t: T;
 }) {
   const rec = loadRecord();
@@ -28,6 +33,20 @@ export function MainMenu({
       <button type="button" className="online-banner rankings-banner" onClick={onRankings}>
         🏆 {t('rankings')}
       </button>
+
+      {auth.status === 'signedIn' && auth.account && (
+        <div className="account-row">
+          <span className="account-name">👤 {auth.account.name}</span>
+          <button type="button" className="ghost-btn" onClick={() => void auth.signOut()}>
+            {t('signOut')}
+          </button>
+        </div>
+      )}
+      {auth.status === 'signedOut' && (
+        <button type="button" className="ghost-btn account-signin-btn" onClick={onSignIn}>
+          {t('signIn')}
+        </button>
+      )}
 
       <div className="menu-cards">
         <button type="button" className="menu-card tarneeb" onClick={() => onPick('tarneeb')}>
