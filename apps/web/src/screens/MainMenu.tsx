@@ -8,11 +8,13 @@ export function MainMenu({
   onPick,
   onCalc,
   onOnline,
+  onRankings,
   t,
 }: {
   onPick: (g: GameId) => void;
   onCalc: (c: CalcId) => void;
   onOnline: () => void;
+  onRankings: () => void;
   t: T;
 }) {
   const rec = loadRecord();
@@ -22,6 +24,9 @@ export function MainMenu({
     <main className="menu">
       <button type="button" className="online-banner" onClick={onOnline}>
         🌐 {t('playOnline')}
+      </button>
+      <button type="button" className="online-banner rankings-banner" onClick={onRankings}>
+        🏆 {t('rankings')}
       </button>
 
       <div className="menu-cards">

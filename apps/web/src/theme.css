@@ -607,6 +607,10 @@ html, body, #root {
   box-shadow: 0 8px 22px var(--shadow); transition: transform 0.12s ease;
 }
 .online-banner:hover { transform: translateY(-2px); }
+.rankings-banner {
+  border-color: var(--accent);
+  background: linear-gradient(160deg, #5c4a24, #352614);
+}
 
 .online {
   flex: 1; display: flex; align-items: flex-start; justify-content: center;

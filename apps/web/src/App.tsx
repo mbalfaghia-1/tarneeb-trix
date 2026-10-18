@@ -123,7 +123,13 @@ export default function App() {
       </header>
 
       {screen === 'menu' && (
-        <MainMenu onPick={pick} onCalc={setScreen} onOnline={() => setScreen('online')} t={t} />
+        <MainMenu
+          onPick={pick}
+          onCalc={setScreen}
+          onOnline={() => setScreen('online')}
+          onRankings={() => setScreen('rankings')}
+          t={t}
+        />
       )}
       {screen === 'online' && <OnlineScreen t={t} onRankings={() => setScreen('rankings')} />}
       {screen === 'rankings' && <RankingsScreen t={t} />}
