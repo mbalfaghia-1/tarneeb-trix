@@ -1,5 +1,6 @@
 import { type Card, type Seat, type Suit, type TarneebState } from '@tarneeb/engine';
 import type { RedactedView } from '@tarneeb/room';
+import { botDisplayName } from '../game/labels';
 import { rotateTarneeb } from '../game/rotate';
 import { useTrickReview } from '../game/useTrickReview';
 import { useOnlineSounds } from '../lib/useOnlineSounds';
@@ -30,7 +31,11 @@ export function OnlineTarneebBoard({
   useOnlineSounds(state, review, awaitingHuman, 'tarneeb');
   useRecordOutcome('tarneeb', state.phase, state.winner);
 
-  const nameFor = (s: Seat) => view.occupants[(s + seat) % 4]?.name ?? '';
+  const nameFor = (s: Seat) => {
+    const o = view.occupants[(s + seat) % 4];
+    if (!o) return '';
+    return o.kind === 'bot' ? botDisplayName(o.name, t) : o.name;
+  };
   const countFor = (s: Seat) => view.handCounts[(s + seat) % 4] ?? 0;
 
   const timerToken = `${state.phase}:${state.tricks.length}:${state.currentTrick.length}:${state.bidLog.length}`;

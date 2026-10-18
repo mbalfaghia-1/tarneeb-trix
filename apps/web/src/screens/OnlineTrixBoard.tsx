@@ -7,6 +7,7 @@ import {
   type TrixState,
 } from '@tarneeb/engine';
 import type { RedactedView } from '@tarneeb/room';
+import { botDisplayName } from '../game/labels';
 import { rotateTrix } from '../game/rotate';
 import { useTrickReview } from '../game/useTrickReview';
 import { useOnlineSounds } from '../lib/useOnlineSounds';
@@ -47,7 +48,11 @@ export function OnlineTrixBoard({
     if (legal.length === 1 && legal[0]!.type === 'PASS') submit({ type: 'PASS', seat });
   }, [real, view.yourTurn, seat, submit]);
 
-  const nameFor = (s: Seat) => view.occupants[(s + seat) % 4]?.name ?? '';
+  const nameFor = (s: Seat) => {
+    const o = view.occupants[(s + seat) % 4];
+    if (!o) return '';
+    return o.kind === 'bot' ? botDisplayName(o.name, t) : o.name;
+  };
   const countFor = (s: Seat) => view.handCounts[(s + seat) % 4] ?? 0;
 
   const timerToken = `${state.phase}:${state.dealNumber}:${state.kingdomIndex}:${state.currentTrick.length}:${state.doublePending.length}`;

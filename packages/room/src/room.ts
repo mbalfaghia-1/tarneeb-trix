@@ -134,7 +134,7 @@ export class Room<S, A> implements RoomHandle {
     const o = this.occ[seat];
     if (!o || o.kind === 'bot') return false;
     const usedNames = new Set(this.occ.filter((o) => o.kind === 'bot').map((o) => o.name));
-    const botName = BOT_NAMES.find((n) => !usedNames.has(n)) ?? `Bot ${seat + 1}`;
+    const botName = BOT_NAME_KEYS.find((n) => !usedNames.has(n)) ?? `Bot ${seat + 1}`;
     this.occ[seat] = { kind: 'bot', name: botName };
     if (!this.paced) this.advance(); // unpaced: if it's now this seat's turn, the bot plays on
     return true;
@@ -207,7 +207,11 @@ export class Room<S, A> implements RoomHandle {
   }
 }
 
-const BOT_NAMES = ['الصقر', 'الذيب', 'الأسد', 'النمر'];
+// Stable, language-NEUTRAL identifiers — not display text. The server never decides a
+// bot's displayed name (it has no notion of the viewer's language, and a table can seat
+// humans with different language settings); the client looks each key up through its own
+// i18n via botDisplayName() in apps/web/src/game/labels.ts, exactly like every other label.
+const BOT_NAME_KEYS = ['falcon', 'wolf', 'lion', 'tiger'];
 
 /** Build occupants for seats 0..3: humans in join order, the rest filled with bots. */
 function seatOccupants(humans: readonly HumanEntry[]): SeatOccupant[] {
@@ -216,7 +220,7 @@ function seatOccupants(humans: readonly HumanEntry[]): SeatOccupant[] {
     const h = humans[s];
     return h
       ? { kind: 'human' as const, playerId: h.playerId, name: h.name }
-      : { kind: 'bot' as const, name: BOT_NAMES[botIdx++] ?? `Bot ${s + 1}` };
+      : { kind: 'bot' as const, name: BOT_NAME_KEYS[botIdx++] ?? `Bot ${s + 1}` };
   });
 }
 
