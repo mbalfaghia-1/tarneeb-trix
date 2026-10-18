@@ -10,7 +10,7 @@ import { LeaveButton } from '../components/LeaveButton';
 import { GameOverOverlay, HandOverOverlay } from '../components/Overlays';
 
 /** How long the server gives a human before auto-playing (mirror of TURN_TIMEOUT_MS). */
-const TURN_LIMIT_MS = 25000;
+const TURN_LIMIT_MS = 5000;
 
 export function OnlineTarneebBoard({
   view,

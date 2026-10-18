@@ -18,7 +18,7 @@ import { LeaveButton } from '../components/LeaveButton';
 import { TrixDealOverlay, TrixGameOverlay } from '../components/trix/TrixOverlays';
 
 /** How long the server gives a human before auto-playing (mirror of TURN_TIMEOUT_MS). */
-const TURN_LIMIT_MS = 25000;
+const TURN_LIMIT_MS = 5000;
 
 export function OnlineTrixBoard({
   view,

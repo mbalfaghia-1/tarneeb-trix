@@ -20,7 +20,7 @@ const TRICK_REVIEW_MS = 2200;
 const DEAL_END_REVIEW_MS = 2600;
 
 /** Seconds the human has to act before the bot brain auto-plays for them. */
-const TURN_LIMIT_MS = 15000;
+const TURN_LIMIT_MS = 5000;
 const QUICK_TURN_MS = 5000; // forced move / completing a trick — nothing to deliberate
 
 /** Shorten the wait when the human has no real decision: a single legal card, or

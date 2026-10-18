@@ -16,7 +16,7 @@ interface Conn {
 /** How long a quick-match waits for more humans before filling seats with bots. */
 const MATCH_WAIT_MS = 15000;
 /** How long a human has to act before the server auto-plays their turn (bot brain). */
-const TURN_TIMEOUT_MS = 25000;
+const TURN_TIMEOUT_MS = 5000;
 const NEEDED = 4;
 
 // Online pacing. Bots resolve at once within a deal (fast); the only server-side pause is
