@@ -14,7 +14,7 @@ const loadName = (): string => {
   }
 };
 
-export function OnlineScreen({ t }: { t: T }) {
+export function OnlineScreen({ t, onRankings }: { t: T; onRankings: () => void }) {
   const game = useOnlineGame();
   const [name, setName] = useState(loadName);
   const [code, setCode] = useState('');
@@ -105,6 +105,9 @@ export function OnlineScreen({ t }: { t: T }) {
         {game.online > 0 && (
           <div className="online-presence">🟢 {t('playersOnline', { n: game.online })}</div>
         )}
+        <button type="button" className="ghost-btn" onClick={onRankings}>
+          🏆 {t('rankings')}
+        </button>
         <label className="online-field">
           <span>{t('yourName')}</span>
           <input

@@ -9,6 +9,13 @@ primary_region = 'fra'
 [build]
   dockerfile = 'apps/server/Dockerfile'
 
+# Rankings DB (SQLite) lives on a persistent volume so it survives deploys/restarts.
+# The volume itself must exist before the first deploy using this config — create it
+# with: fly volumes create tarneeb_data --region fra --size 1
+[[mounts]]
+  source = 'tarneeb_data'
+  destination = '/data'
+
 [http_service]
   internal_port = 8080
   force_https = true

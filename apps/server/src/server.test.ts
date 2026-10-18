@@ -34,7 +34,7 @@ function nextMsg(ws: WebSocket, match: (m: ServerMsg) => boolean, timeout = 3000
 
 describe('game server over WebSocket', () => {
   it('two clients create/join/start and play a move, with redacted views', async () => {
-    const wss = createGameServer(0);
+    const wss = createGameServer(0, ':memory:');
     const port = (wss.address() as AddressInfo).port;
     try {
       const a = await connect(port);
@@ -78,7 +78,7 @@ describe('game server over WebSocket', () => {
   });
 
   it('reports an error for an illegal action instead of crashing', async () => {
-    const wss = createGameServer(0);
+    const wss = createGameServer(0, ':memory:');
     const port = (wss.address() as AddressInfo).port;
     try {
       const a = await connect(port);
@@ -92,6 +92,21 @@ describe('game server over WebSocket', () => {
       const err = (await nextMsg(a, (m) => m.t === 'error')) as Extract<ServerMsg, { t: 'error' }>;
       expect(err.message).toBeTruthy();
       a.close();
+    } finally {
+      wss.close();
+    }
+  });
+
+  it('serves GET /rankings as JSON off the same port as the WebSocket', async () => {
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    try {
+      const res = await fetch(`http://localhost:${port}/rankings?game=tarneeb`);
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toContain('application/json');
+      expect(res.headers.get('access-control-allow-origin')).toBe('*');
+      const body = (await res.json()) as { players: unknown[] };
+      expect(body.players).toEqual([]); // nothing recorded yet in a fresh :memory: db
     } finally {
       wss.close();
     }

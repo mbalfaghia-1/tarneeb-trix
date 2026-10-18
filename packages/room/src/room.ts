@@ -95,6 +95,10 @@ export class Room<S, A> implements RoomHandle {
     return this.ctl.legalActions(this.state).length === 0;
   }
 
+  winnerSeats(): readonly Seat[] {
+    return this.isTerminal() ? this.ctl.winnerSeats(this.state) : [];
+  }
+
   seatOf(playerId: PlayerId): Seat | null {
     const i = this.occupants.findIndex((o) => o.kind === 'human' && o.playerId === playerId);
     return i < 0 ? null : (i as Seat);

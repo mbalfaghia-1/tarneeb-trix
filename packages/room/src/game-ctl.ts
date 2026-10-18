@@ -38,6 +38,10 @@ export interface GameCtl<S, A> {
   /** Pacing hint for the current position (paced/online play): 'deal' at a between-deals
    *  summary, 'trick' just after a trick completed, else 'normal'. Default 'normal'. */
   paceHint?(s: S): PaceHint;
+  /** Seats that won the GAME (not just a hand/deal) — empty while not yet game-over, or
+   *  on a tie. Both engines' winner fields are team/seat indices that overlap in range
+   *  (0|1 for a team, or a lone seat), so each control normalizes its own meaning here. */
+  winnerSeats(s: S): readonly Seat[];
 }
 
 const emptyOtherHands = <S extends { hands: readonly (readonly unknown[])[] }>(
@@ -61,6 +65,8 @@ export const tarneebCtl: GameCtl<TarneebState, TarneebAction> = {
     if (s.phase === 'playing' && s.currentTrick.length === 0 && s.tricks.length > 0) return 'trick';
     return 'normal';
   },
+  // Tarneeb teams: seats {0,2} = team 0, seats {1,3} = team 1.
+  winnerSeats: (s) => (s.winner === 0 ? [0, 2] : s.winner === 1 ? [1, 3] : []),
 };
 
 export function makeTrixCtl(
@@ -84,6 +90,13 @@ export function makeTrixCtl(
       const tricksTaken = s.tricksTaken.reduce((a, b) => a + b, 0);
       if (s.phase === 'playing' && s.currentTrick.length === 0 && tricksTaken > 0) return 'trick';
       return 'normal';
+    },
+    // Individual mode: s.winner IS the winning seat. Partnership mode: s.winner is a
+    // TEAM index (0 = seats {0,2}, 1 = seats {1,3}) despite sharing the Seat type.
+    winnerSeats: (s) => {
+      if (s.winner === null || s.winner === 'tie') return [];
+      if (!partnership) return [s.winner];
+      return s.winner === 0 ? [0, 2] : [1, 3];
     },
   };
 }

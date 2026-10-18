@@ -1,10 +1,13 @@
 // Thin WebSocket layer over the pure Lobby. Each socket is associated with a player
 // and (once they create/join) a table code; after every mutation the affected table
 // is re-broadcast: the lobby state before the game starts, and each seat's redacted
-// view afterward.
+// view afterward. Also serves a small HTTP GET /rankings endpoint off the same port
+// (the web client fetches it directly; the game protocol itself stays WebSocket-only).
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { ClientMsg, GameKind, ServerMsg } from '@tarneeb/room';
 import { Lobby } from './lobby.js';
+import { openRankingsDb, type RankingsDb } from './db.js';
 
 interface Conn {
   socket: WebSocket;
@@ -24,8 +27,41 @@ const NEEDED = 4;
 const BOT_STEP_MS = 350;
 const DEAL_PAUSE_MS = 2800;
 
-export function createGameServer(port: number): WebSocketServer {
-  const wss = new WebSocketServer({ port });
+/** Where the rankings DB lives: a real file by default (override via DB_PATH, e.g. the
+ *  Fly volume mount), or ':memory:' for tests so they never touch disk / share state. */
+function defaultDbPath(): string {
+  return process.env.DB_PATH ?? './data/rankings.db';
+}
+
+export function createGameServer(port: number, dbPath: string = defaultDbPath()): WebSocketServer {
+  const db: RankingsDb = openRankingsDb(dbPath);
+  const recordedResults = new Set<string>(); // table codes already written, so pump() can't double-record
+
+  const handleHttp = (req: IncomingMessage, res: ServerResponse): void => {
+    const url = new URL(req.url ?? '/', 'http://x');
+    if (req.method === 'GET' && url.pathname === '/rankings') {
+      const game = url.searchParams.get('game') as GameKind | null;
+      const rows = db.leaderboard(game && game !== ('' as GameKind) ? game : null);
+      res.writeHead(200, {
+        'content-type': 'application/json',
+        // Public, read-only leaderboard — fine to fetch cross-origin from the Vercel web app.
+        'access-control-allow-origin': '*',
+      });
+      res.end(JSON.stringify({ players: rows }));
+      return;
+    }
+    res.writeHead(404, { 'content-type': 'text/plain' });
+    res.end('not found');
+  };
+
+  const httpServer = createServer(handleHttp);
+  const wss = new WebSocketServer({ server: httpServer });
+  // `ws` does NOT close an externally-provided server on wss.close() (it may be shared) —
+  // cascade it ourselves so callers can still just call wss.close() like before.
+  wss.on('close', () => {
+    httpServer.close();
+    db.close();
+  });
   const lobby = new Lobby();
   const conns = new Map<WebSocket, Conn>();
   const matchTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -139,7 +175,12 @@ export function createGameServer(port: number): WebSocketServer {
       );
       return;
     }
-    // terminal — nothing to schedule
+    // terminal — record the result for rankings (once) and schedule nothing further.
+    if (!recordedResults.has(code)) {
+      recordedResults.add(code);
+      const result = lobby.gameResult(code);
+      if (result) db.recordGame(result);
+    }
   }
 
   const broadcastQueue = (game: GameKind, partnership: boolean) => {
@@ -321,5 +362,6 @@ export function createGameServer(port: number): WebSocketServer {
     });
   });
 
+  httpServer.listen(port);
   return wss;
 }

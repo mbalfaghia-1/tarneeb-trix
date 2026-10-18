@@ -42,6 +42,39 @@ describe('room: all-bot tables auto-play to a result', () => {
   });
 });
 
+describe('room: winnerSeats', () => {
+  it('is empty before the game ends', () => {
+    const room = createRoom({ game: 'tarneeb', seed: 11 }, [{ playerId: 'p0', name: 'Me' }]);
+    expect(room.isTerminal()).toBe(false);
+    expect(room.winnerSeats()).toEqual([]);
+  });
+
+  it('Tarneeb: names both seats of the winning team (0,2) or (1,3)', () => {
+    const room = createRoom({ game: 'tarneeb', seed: 7 });
+    const state = room.rawState() as TarneebState;
+    const expected = state.winner === 0 ? [0, 2] : [1, 3];
+    expect(room.winnerSeats()).toEqual(expected);
+  });
+
+  it('Trix individual mode: names exactly the one winning seat', () => {
+    const room = createRoom({ game: 'trix', seed: 7 });
+    const state = room.rawState() as TrixState;
+    expect(state.winner).not.toBe('tie');
+    expect(room.winnerSeats()).toEqual([state.winner]);
+  });
+
+  it('Trix partnership mode: names both seats of the winning team, not a lone seat', () => {
+    const room = createRoom({ game: 'trix', partnership: true, seed: 7 });
+    const state = room.rawState() as TrixState;
+    if (state.winner === 'tie') {
+      expect(room.winnerSeats()).toEqual([]);
+    } else {
+      const expected = state.winner === 0 ? [0, 2] : [1, 3];
+      expect(room.winnerSeats()).toEqual(expected);
+    }
+  });
+});
+
 describe('room: humans + bots played through the room API', () => {
   it('Tarneeb: one human (seat 0) + three bots reaches a winner', () => {
     const room = createRoom({ game: 'tarneeb', seed: 11 }, [{ playerId: 'p0', name: 'Me' }]);

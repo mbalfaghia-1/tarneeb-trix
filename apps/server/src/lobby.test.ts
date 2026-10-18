@@ -91,3 +91,54 @@ describe('lobby: seating and start', () => {
     expect(lobby.lobbyState(code).hostId).toBe('p1');
   });
 });
+
+describe('lobby: gameResult', () => {
+  /** Drive a holdDeals table to game-over: submit the human's first legal move
+   *  whenever it's their turn, resumeDeal() past every hand/deal boundary. */
+  function playToEnd(lobby: Lobby, code: string, playerId: string): void {
+    for (let guard = 0; guard < 10_000; guard++) {
+      const next = lobby.peekNext(code);
+      if (next === 'terminal' || next === null) return;
+      if (next === 'auto') {
+        lobby.resumeDeal(code);
+        continue;
+      }
+      if (next === 'human') {
+        const view = lobby.viewFor(code, playerId)!;
+        const legal = getLegalActions(view.state as TarneebState);
+        lobby.submit(code, playerId, legal[0]);
+        continue;
+      }
+      throw new Error(`unexpected step ${next}`); // 'bot' never happens: Room auto-advances bots itself
+    }
+    throw new Error('did not terminate');
+  }
+
+  it('is null before the table is started', () => {
+    const lobby = new Lobby();
+    const code = lobby.createTable({ playerId: 'p0', name: 'H' }, 'tarneeb');
+    expect(lobby.gameResult(code)).toBeNull();
+  });
+
+  it('is null while the game is still in progress', () => {
+    const lobby = new Lobby();
+    const code = lobby.createTable({ playerId: 'p0', name: 'H' }, 'tarneeb');
+    lobby.start(code, 'p0');
+    expect(lobby.gameResult(code)).toBeNull();
+  });
+
+  it('reports occupants + winnerSeats once the game ends, skipping bot seats', () => {
+    const lobby = new Lobby();
+    const code = lobby.createTable({ playerId: 'p0', name: 'Alice' }, 'tarneeb');
+    lobby.start(code, 'p0'); // seat 0 = human, seats 1-3 = bots
+    playToEnd(lobby, code, 'p0');
+
+    const result = lobby.gameResult(code)!;
+    expect(result).not.toBeNull();
+    expect(result.game).toBe('tarneeb');
+    expect(result.occupants[0]).toEqual({ kind: 'human', playerId: 'p0', name: 'Alice' });
+    expect(result.occupants.slice(1).every((o) => o.kind === 'bot')).toBe(true);
+    expect(result.winnerSeats.length).toBeGreaterThan(0); // Tarneeb never ties
+    expect([0, 2].includes(result.winnerSeats[0]!) || [1, 3].includes(result.winnerSeats[0]!)).toBe(true);
+  });
+});

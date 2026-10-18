@@ -95,6 +95,8 @@ export interface RoomHandle {
   resumeDeal(): void;
   awaitingSeat(): Seat | null;
   isTerminal(): boolean;
+  /** Seats that won the game, or [] while not terminal yet / on a tie. */
+  winnerSeats(): readonly Seat[];
   /** Full un-redacted state — server/debug use only, never send to a client. */
   rawState(): unknown;
 }

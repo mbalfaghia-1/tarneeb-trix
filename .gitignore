@@ -27,6 +27,11 @@ Thumbs.db
 # test / coverage
 coverage/
 
+# local rankings DB (SQLite) — production data lives on the Fly volume, not in git
+apps/server/data/
+*.db
+*.db-journal
+
 # Google Drive lock/temp files from the docs sitting alongside the code
 ~$*
 ~WRL*.tmp

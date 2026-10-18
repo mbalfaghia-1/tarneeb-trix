@@ -7,8 +7,9 @@ import { TrixScreen } from './screens/TrixScreen';
 import { TarneebCalculator } from './screens/TarneebCalculator';
 import { TrixCalculator } from './screens/TrixCalculator';
 import { OnlineScreen } from './screens/OnlineScreen';
+import { RankingsScreen } from './screens/RankingsScreen';
 
-type Screen = 'menu' | GameId | CalcId | 'online';
+type Screen = 'menu' | GameId | CalcId | 'online' | 'rankings';
 
 export default function App() {
   const [lang, setLang] = useState<Lang>('en');
@@ -61,7 +62,9 @@ export default function App() {
               ? t('trixCalc')
               : screen === 'online'
                 ? t('playOnline')
-                : t('chooseGame');
+                : screen === 'rankings'
+                  ? t('rankings')
+                  : t('chooseGame');
 
   const pick = (g: GameId) => {
     if (g === 'tarneeb') {
@@ -122,7 +125,8 @@ export default function App() {
       {screen === 'menu' && (
         <MainMenu onPick={pick} onCalc={setScreen} onOnline={() => setScreen('online')} t={t} />
       )}
-      {screen === 'online' && <OnlineScreen t={t} />}
+      {screen === 'online' && <OnlineScreen t={t} onRankings={() => setScreen('rankings')} />}
+      {screen === 'rankings' && <RankingsScreen t={t} />}
       {screen === 'tarneeb' && <TarneebScreen key={gameKey} t={t} onExit={() => setScreen('menu')} />}
       {screen === 'trix' && (
         <TrixScreen key={gameKey} t={t} mode="regular" partnership={partnership} onExit={() => setScreen('menu')} />

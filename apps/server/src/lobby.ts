@@ -15,6 +15,7 @@ import {
   type RoomConfig,
   type RoomHandle,
   type Seat,
+  type SeatOccupant,
   type StepKind,
 } from '@tarneeb/room';
 
@@ -229,6 +230,24 @@ export class Lobby {
   /** holdDeals: advance past the paused deal boundary and settle the next deal at once. */
   resumeDeal(code: string): void {
     this.tables.get(code)?.room?.resumeDeal();
+  }
+
+  /**
+   * A finished table's result for recording in rankings — occupants (so the caller can
+   * skip bot seats) plus the seats that won. Returns null if the table doesn't exist,
+   * hasn't started, or hasn't reached game-over yet.
+   */
+  gameResult(
+    code: string,
+  ): { game: GameKind; partnership: boolean; occupants: readonly SeatOccupant[]; winnerSeats: readonly Seat[] } | null {
+    const t = this.tables.get(code);
+    if (!t || !t.room || !t.room.isTerminal()) return null;
+    return {
+      game: t.config.game,
+      partnership: !!t.config.partnership,
+      occupants: t.room.occupants,
+      winnerSeats: t.room.winnerSeats(),
+    };
   }
 
   hasTable(code: string): boolean {
