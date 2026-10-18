@@ -13,6 +13,7 @@ interface RankingRow {
   name: string;
   games: number;
   wins: number;
+  points: number;
 }
 
 const GAME_TABS: readonly (GameKind | null)[] = [null, 'tarneeb', 'trix', 'trixComplex'];
@@ -67,6 +68,7 @@ export function RankingsScreen({ t }: { t: T }) {
                 <tr>
                   <th>#</th>
                   <th>{t('yourName')}</th>
+                  <th>{t('rankPoints')}</th>
                   <th>{t('rankWins')}</th>
                   <th>{t('rankGames')}</th>
                 </tr>
@@ -76,6 +78,7 @@ export function RankingsScreen({ t }: { t: T }) {
                   <tr key={r.playerId}>
                     <td>{i + 1}</td>
                     <td>{r.name}</td>
+                    <td className="pos">{r.points}</td>
                     <td>{r.wins}</td>
                     <td>{r.games}</td>
                   </tr>
