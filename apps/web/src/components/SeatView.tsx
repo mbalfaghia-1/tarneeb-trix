@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { type Seat, type TarneebState } from '@tarneeb/engine';
 import { HUMAN_SEAT } from '../game/useTarneebGame';
 import { posOf } from '../game/layout';
@@ -34,6 +35,7 @@ export function SeatView({
   name,
   count,
   turnTimer,
+  elRef,
 }: {
   seat: Seat;
   state: TarneebState;
@@ -45,6 +47,9 @@ export function SeatView({
   count?: number;
   /** Countdown timer (only passed for the human seat when awaiting). */
   turnTimer?: { limitMs: number; token: string };
+  /** Measures this seat's real rendered height (passed only for the bottom seat,
+   *  so the trick area can stay clear of it — see useElementHeight). */
+  elRef?: RefObject<HTMLDivElement>;
 }) {
   const pos = posOf(seat, HUMAN_SEAT);
   const isTurn = state.turn === seat && state.phase !== 'hand-over' && state.phase !== 'game-over';
@@ -54,7 +59,7 @@ export function SeatView({
   const isDeclarer = state.declarer === seat;
 
   return (
-    <div className={`seat seat-${pos} ${isTurn ? 'turn' : ''} ${justWon ? 'won' : ''}`}>
+    <div ref={elRef} className={`seat seat-${pos} ${isTurn ? 'turn' : ''} ${justWon ? 'won' : ''}`}>
       {pos !== 'bottom' && (
         <div className="mini-stack" aria-hidden="true">
           {Array.from({ length: Math.min(cardCount, 4) }).map((_, i) => (

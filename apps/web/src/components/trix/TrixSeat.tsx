@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { RANK_LABEL, SUIT_IS_RED, SUIT_SYMBOL, scoreTrixDeal, type Seat, type Suit, type TrixState } from '@tarneeb/engine';
 import { posOf } from '../../game/layout';
 import { turnName } from '../../game/labels';
@@ -11,6 +12,7 @@ export function TrixSeat({
   name,
   count,
   turnTimer,
+  elRef,
 }: {
   seat: Seat;
   state: TrixState;
@@ -22,6 +24,9 @@ export function TrixSeat({
   count?: number;
   /** Countdown timer (only passed for the human seat when awaiting). */
   turnTimer?: { limitMs: number; token: string };
+  /** Measures this seat's real rendered height (passed only for the bottom seat,
+   *  so the trick area can stay clear of it — see useElementHeight). */
+  elRef?: RefObject<HTMLDivElement>;
 }) {
   const pos = posOf(seat, 0 as Seat);
   const isTurn =
@@ -71,7 +76,7 @@ export function TrixSeat({
       : [];
 
   return (
-    <div className={`seat seat-${pos} ${isTurn ? 'turn' : ''} ${justWon ? 'won' : ''}`}>
+    <div ref={elRef} className={`seat seat-${pos} ${isTurn ? 'turn' : ''} ${justWon ? 'won' : ''}`}>
       {pos !== 'bottom' && (
         <div className="mini-stack" aria-hidden="true">
           {Array.from({ length: Math.min(cardCount, 4) }).map((_, i) => (

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   SEATS,
   SUIT_IS_RED,
@@ -10,6 +10,7 @@ import {
   type TarneebState,
 } from '@tarneeb/engine';
 import { turnName } from '../game/labels';
+import { useElementHeight } from '../game/useElementHeight';
 import type { T } from '../i18n';
 import { SeatView } from './SeatView';
 import { Scoreboard } from './Scoreboard';
@@ -62,6 +63,7 @@ export function TarneebBoard({
   children,
 }: TarneebBoardProps) {
   const label = (s: Seat) => nameFor?.(s) ?? turnName(s, t);
+  const [seatBottomRef, seatBottomH] = useElementHeight<HTMLDivElement>(70);
 
   const humanBidding = awaitingHuman && state.phase === 'bidding';
   const humanTrump = awaitingHuman && state.phase === 'trump-select';
@@ -69,7 +71,7 @@ export function TarneebBoard({
   let status = '';
 
   return (
-    <main className="table">
+    <main className="table" style={{ '--seat-bottom-h': `${seatBottomH}px` } as CSSProperties}>
       <Scoreboard state={state} t={t} />
 
       {state.phase === 'playing' && state.trump && (
@@ -90,6 +92,7 @@ export function TarneebBoard({
           count={countFor?.(s)}
           justWon={reviewTrick?.winner === s}
           turnTimer={s === 0 && awaitingHuman && turnTimer ? turnTimer : undefined}
+          elRef={s === 0 ? seatBottomRef : undefined}
         />
       ))}
 

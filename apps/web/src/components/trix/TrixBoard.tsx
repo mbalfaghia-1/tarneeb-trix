@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   SEATS,
   type Card,
@@ -9,6 +9,7 @@ import {
 } from '@tarneeb/engine';
 import { turnName } from '../../game/labels';
 import { CONTRACT_ICON } from '../../game/trixLabels';
+import { useElementHeight } from '../../game/useElementHeight';
 import type { T } from '../../i18n';
 import { LastTrick } from '../LastTrick';
 import { TrixScoreboard } from './TrixScoreboard';
@@ -60,6 +61,7 @@ export function TrixBoard({
   children,
 }: TrixBoardProps) {
   const label = (s: Seat) => nameFor?.(s) ?? turnName(s, t);
+  const [seatBottomRef, seatBottomH] = useElementHeight<HTMLDivElement>(90);
 
   const humanContract = awaitingHuman && state.phase === 'contract-select';
   const humanDoubling = awaitingHuman && state.phase === 'doubling';
@@ -72,7 +74,7 @@ export function TrixBoard({
   else if (awaitingHuman && state.phase === 'doubling') status = t('double_title');
 
   return (
-    <main className="table">
+    <main className="table" style={{ '--seat-bottom-h': `${seatBottomH}px` } as CSSProperties}>
       <TrixScoreboard state={state} t={t} />
 
       {contractShown && state.contract && (
@@ -95,6 +97,7 @@ export function TrixBoard({
           count={countFor?.(s)}
           justWon={reviewTrick?.winner === s}
           turnTimer={s === 0 && awaitingHuman && turnTimer ? turnTimer : undefined}
+          elRef={s === 0 ? seatBottomRef : undefined}
         />
       ))}
 
