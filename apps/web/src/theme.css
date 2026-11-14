@@ -136,9 +136,14 @@ html, body, #root {
   overflow: hidden;
 
   /* ── Fluid card dimension tokens ──
-     Scale with the SMALLER of viewport width/height so cards
-     shrink on narrow phones AND short landscape screens.       */
-  --card-w: clamp(46px, min(12vw, 8.5vh), 130px);
+     Scale with the SMALLER of viewport width/height so cards shrink on narrow
+     phones AND short landscape screens — but the old 8.5vh was so conservative
+     that spacious tablet landscapes (short height, plenty of width) got
+     needlessly tiny cards. 16vh gives landscape room to breathe while still
+     capping on genuinely short screens. (The hand itself has an additional,
+     JS-computed cap — see useHandCardWidth — so a 13-card hand with several
+     suit breaks can never overflow regardless of this value.) */
+  --card-w: clamp(46px, min(13vw, 16vh), 130px);
   --card-h: calc(var(--card-w) * 1.4);
   --card-lg-h: var(--card-h);
 

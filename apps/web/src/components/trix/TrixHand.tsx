@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import {
   cardId,
   legalPlays,
@@ -7,6 +8,7 @@ import {
   type TrixState,
 } from '@tarneeb/engine';
 import { CardView } from '../CardView';
+import { useHandCardWidth } from '../../game/useHandCardWidth';
 
 const SUIT_DISPLAY_ORDER: Record<Suit, number> = { S: 0, H: 1, C: 2, D: 3 };
 const forDisplay = (cards: readonly Card[]): Card[] =>
@@ -32,9 +34,14 @@ export function TrixHand({
   }
   const cards = forDisplay(hand);
   const gating = active && (state.phase === 'playing' || state.phase === 'shedding');
+  const suitBreaks = cards.reduce(
+    (n, c, i) => n + (i > 0 && cards[i - 1]!.suit !== c.suit ? 1 : 0),
+    0,
+  );
+  const sizeVars = useHandCardWidth(cards.length, suitBreaks);
 
   return (
-    <div className="hand">
+    <div className="hand" style={sizeVars as CSSProperties}>
       {cards.map((card, i) => {
         const playable = legalIds.has(cardId(card));
         const prev = cards[i - 1];
