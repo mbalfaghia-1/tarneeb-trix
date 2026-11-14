@@ -115,27 +115,37 @@ export function TrixSeat({
       {state.phase === 'shedding' && finished >= 0 && (
         <div className="trix-finish">#{finished + 1}</div>
       )}
-      {myTwos.length > 0 && (
-        <div className="seat-twos">
-          {myTwos.map((tw) => (
-            <span key={tw.card.suit} className={`two-chip ${SUIT_IS_RED[tw.card.suit] ? 'red' : ''}`}>
-              2{SUIT_SYMBOL[tw.card.suit]}
-            </span>
-          ))}
-        </div>
-      )}
-      {myDoubled.length > 0 && (
-        <div className="seat-doubled">
-          <span className="dbl-tag">{t('doubled_label')}</span>
-          {myDoubled.map((d) => (
-            <span
-              key={`${d.card.rank}${d.card.suit}`}
-              className={`two-chip ${SUIT_IS_RED[d.card.suit] ? 'red' : ''}`}
-            >
-              {RANK_LABEL[d.card.rank]}
-              {SUIT_SYMBOL[d.card.suit]}
-            </span>
-          ))}
+      {(myTwos.length > 0 || myDoubled.length > 0) && (
+        // Anchored to the SIDE of the seat (not stacked below the nameplate) so a
+        // seat holding several doubled cards never grows taller and pushes into
+        // the trick area in the middle — it just grows sideways, where there's
+        // slack, instead of competing with the trick cards for the same band of
+        // vertical space. See .seat-side-badges in theme.css for the per-position
+        // anchor direction (always "inward", toward table center).
+        <div className="seat-side-badges">
+          {myTwos.length > 0 && (
+            <div className="seat-twos">
+              {myTwos.map((tw) => (
+                <span key={tw.card.suit} className={`two-chip ${SUIT_IS_RED[tw.card.suit] ? 'red' : ''}`}>
+                  2{SUIT_SYMBOL[tw.card.suit]}
+                </span>
+              ))}
+            </div>
+          )}
+          {myDoubled.length > 0 && (
+            <div className="seat-doubled">
+              <span className="dbl-tag">{t('doubled_label')}</span>
+              {myDoubled.map((d) => (
+                <span
+                  key={`${d.card.rank}${d.card.suit}`}
+                  className={`two-chip ${SUIT_IS_RED[d.card.suit] ? 'red' : ''}`}
+                >
+                  {RANK_LABEL[d.card.rank]}
+                  {SUIT_SYMBOL[d.card.suit]}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

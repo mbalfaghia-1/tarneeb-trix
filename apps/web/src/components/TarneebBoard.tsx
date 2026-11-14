@@ -64,6 +64,10 @@ export function TarneebBoard({
 }: TarneebBoardProps) {
   const label = (s: Seat) => nameFor?.(s) ?? turnName(s, t);
   const [seatBottomRef, seatBottomH] = useElementHeight<HTMLDivElement>(70);
+  // Seat 2 is always "top" here (viewer sits at seat 0 — see posOf). Mirrors the
+  // bottom-seat fix: the trick area must stay clear of the top seat too, whatever
+  // it's currently showing (bid bubble, etc).
+  const [seatTopRef, seatTopH] = useElementHeight<HTMLDivElement>(70);
 
   const humanBidding = awaitingHuman && state.phase === 'bidding';
   const humanTrump = awaitingHuman && state.phase === 'trump-select';
@@ -71,7 +75,10 @@ export function TarneebBoard({
   let status = '';
 
   return (
-    <main className="table" style={{ '--seat-bottom-h': `${seatBottomH}px` } as CSSProperties}>
+    <main
+      className="table"
+      style={{ '--seat-bottom-h': `${seatBottomH}px`, '--seat-top-h': `${seatTopH}px` } as CSSProperties}
+    >
       <Scoreboard state={state} t={t} />
 
       {state.phase === 'playing' && state.trump && (
@@ -92,7 +99,7 @@ export function TarneebBoard({
           count={countFor?.(s)}
           justWon={reviewTrick?.winner === s}
           turnTimer={s === 0 && awaitingHuman && turnTimer ? turnTimer : undefined}
-          elRef={s === 0 ? seatBottomRef : undefined}
+          elRef={s === 0 ? seatBottomRef : s === 2 ? seatTopRef : undefined}
         />
       ))}
 

@@ -62,6 +62,11 @@ export function TrixBoard({
 }: TrixBoardProps) {
   const label = (s: Seat) => nameFor?.(s) ?? turnName(s, t);
   const [seatBottomRef, seatBottomH] = useElementHeight<HTMLDivElement>(90);
+  // Seat 2 is always the "top" position here (this board assumes the viewer sits
+  // at seat 0 — see posOf). Doubled-card badges can stack up to 3 chips (Complex
+  // contract), which made the earlier fixed top offset too small — same collision
+  // class as the bottom seat, just the other side of the trick area.
+  const [seatTopRef, seatTopH] = useElementHeight<HTMLDivElement>(70);
 
   const humanContract = awaitingHuman && state.phase === 'contract-select';
   const humanDoubling = awaitingHuman && state.phase === 'doubling';
@@ -74,7 +79,10 @@ export function TrixBoard({
   else if (awaitingHuman && state.phase === 'doubling') status = t('double_title');
 
   return (
-    <main className="table" style={{ '--seat-bottom-h': `${seatBottomH}px` } as CSSProperties}>
+    <main
+      className="table"
+      style={{ '--seat-bottom-h': `${seatBottomH}px`, '--seat-top-h': `${seatTopH}px` } as CSSProperties}
+    >
       <TrixScoreboard state={state} t={t} />
 
       {contractShown && state.contract && (
@@ -97,7 +105,7 @@ export function TrixBoard({
           count={countFor?.(s)}
           justWon={reviewTrick?.winner === s}
           turnTimer={s === 0 && awaitingHuman && turnTimer ? turnTimer : undefined}
-          elRef={s === 0 ? seatBottomRef : undefined}
+          elRef={s === 0 ? seatBottomRef : s === 2 ? seatTopRef : undefined}
         />
       ))}
 

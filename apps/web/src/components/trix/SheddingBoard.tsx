@@ -21,7 +21,19 @@ function ShedCol({ cards, suit }: { cards: Card[]; suit: Suit }) {
     if (!cardEl) return;
     const cardH = cardEl.offsetHeight;
     const availH = col.parentElement?.clientHeight ?? 400;
-    const visiblePerCard = Math.max(cardH * 0.3, (availH - cardH) / (cards.length - 1));
+    // Prefer a readable 30%-of-card-height sliver per card, but never more than
+    // what actually fits in availH — the old version used a hard 30% floor with
+    // no ceiling, so a long run (e.g. 11 cards of one suit still in play) could
+    // demand more height than was available. Since .shedding-board clips with
+    // overflow:hidden, the column silently overflowed downward and whichever
+    // cards fell past the visible edge were just gone (not scrollable, not
+    // indicated) — reported live: a player's next legal card implied several
+    // ranks had already been played that weren't visible anywhere on screen.
+    // Capping at the fit-based gap guarantees the whole column always fits,
+    // even if that means a thin 2px sliver per card in extreme cases.
+    const idealGap = cardH * 0.3;
+    const fitGap = (availH - cardH) / (cards.length - 1);
+    const visiblePerCard = Math.max(2, Math.min(idealGap, fitGap));
     setOverlap(Math.max(0, cardH - visiblePerCard));
   }, [cards.length]);
 

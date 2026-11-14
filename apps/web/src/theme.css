@@ -216,6 +216,24 @@ html, body, #root {
 .seat-left { left: clamp(6px, 1.5vw, 14px); top: 45%; transform: translateY(-50%); }
 .seat-right { right: clamp(6px, 1.5vw, 14px); top: 45%; transform: translateY(-50%); }
 
+/* Doubled/"2" badges float beside the seat (absolutely positioned, so they add
+   no height to .seat's own box) rather than stacking below it — a seat holding
+   several doubled cards (up to 3 chips in Trix Complex) can then grow sideways,
+   where there's slack, instead of growing into the trick area's shared
+   vertical band (top/bottom seats) or toward the screen edge (left/right
+   seats). Always anchored toward the table's horizontal center. Because this
+   is position:absolute, it's also excluded from the --seat-top-h/
+   --seat-bottom-h measurements (see useElementHeight) that size the trick
+   area's safe band — exactly the point, since badges here can no longer
+   collide with it regardless of how many chips are showing. */
+.seat-side-badges {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 4px; z-index: 16;
+}
+.seat-top .seat-side-badges, .seat-bottom .seat-side-badges { left: 100%; margin-left: 8px; }
+.seat-left .seat-side-badges { left: 100%; margin-left: 8px; }
+.seat-right .seat-side-badges { right: 100%; margin-right: 8px; }
+
 .nameplate {
   display: flex; align-items: center; gap: 7px;
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
@@ -336,14 +354,16 @@ html, body, #root {
 
 /* ---- trick ----
    Bounded by top/bottom (not a fixed-height box centered by guesswork) so it's
-   guaranteed to stay clear of the bottom seat's nameplate/badges at ANY card
-   size: --seat-bottom-h is the seat's real measured height (useElementHeight),
-   not a fixed estimate, so this can't silently drift out of sync the way a
-   hardcoded offset did when --card-w grew (see apps/web/src/game/useElementHeight.ts). */
+   guaranteed to stay clear of BOTH seats' nameplates/badges at ANY card size or
+   badge count: --seat-bottom-h / --seat-top-h are each seat's real measured
+   height (useElementHeight), not a fixed estimate, so this can't silently drift
+   out of sync the way a hardcoded offset did — e.g. when --card-w grew, or when
+   a seat's doubled-card badge row grew to 3 chips (Trix Complex). See
+   apps/web/src/game/useElementHeight.ts. */
 .trick-area {
   position: absolute; left: 50%; transform: translateX(-50%);
   width: clamp(180px, 38vmin, 380px);
-  top: clamp(50px, 14vh, 130px);
+  top: calc(clamp(4px, 1vh, 10px) + var(--seat-top-h, 70px) + var(--ui-gap) + 6px);
   bottom: calc(var(--card-lg-h) + var(--ui-edge) + var(--seat-bottom-h, 90px) + 10px + env(safe-area-inset-bottom, 0px));
   z-index: 12;
 }
@@ -891,12 +911,12 @@ html, body, #root {
 .two-chip.red { color: var(--card-red); }
 
 /* Centre the shedding board in the BAND between the top seat and the bottom seat/hand.
-   Uses the same real-measured --seat-bottom-h as .trick-area, for the same reason:
-   the bottom seat can show "2" chips during shedding, and a fixed guess can't
-   account for that (or for --card-lg-h changing with orientation). */
+   Uses the same real-measured --seat-bottom-h/--seat-top-h as .trick-area, for the
+   same reason: either seat can show "2" chips during shedding, and a fixed guess
+   can't account for that (or for --card-lg-h changing with orientation). */
 .shedding-board {
   position: absolute; left: 50%; transform: translateX(-50%);
-  top: clamp(50px, 14vh, 130px);
+  top: calc(clamp(4px, 1vh, 10px) + var(--seat-top-h, 70px) + var(--ui-gap) + 6px);
   bottom: calc(var(--card-lg-h) + var(--ui-edge) + var(--seat-bottom-h, 90px) + 10px + env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: row; justify-content: center; align-items: flex-start;
   gap: clamp(4px, 1vw, 12px); z-index: 12; max-width: 96%; overflow: hidden;
@@ -964,7 +984,7 @@ html, body, #root {
 .double-actions .primary-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* Doubled penalty cards ride on the seat of the player who revealed them. */
-.seat-doubled { display: flex; align-items: center; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
+.seat-doubled { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .dbl-tag {
   font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
   color: var(--accent);
