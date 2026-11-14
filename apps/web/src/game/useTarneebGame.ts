@@ -22,10 +22,13 @@ const DEAL_END_REVIEW_MS = 2600;
 /** Seconds the human has to act before the bot brain auto-plays for them. */
 const TURN_LIMIT_MS = 5000;
 const QUICK_TURN_MS = 5000; // forced move / completing a trick — nothing to deliberate
+const BID_SELECT_LIMIT_MS = 15000; // choosing a bid or trump is a real decision, not a reflex play
 
 /** Shorten the wait when the human has no real decision: a single legal card, or
- *  the last card that completes the current trick. */
+ *  the last card that completes the current trick. Bidding/trump-select get longer,
+ *  since those take actual thought unlike playing an already-chosen-contract card. */
 function humanTurnLimitMs(s: TarneebState): number {
+  if (s.phase === 'bidding' || s.phase === 'trump-select') return BID_SELECT_LIMIT_MS;
   if (s.phase === 'playing' && s.turn === HUMAN_SEAT) {
     if (legalPlays(s.hands[HUMAN_SEAT] ?? [], s.currentTrick).length <= 1) return QUICK_TURN_MS;
     if (s.currentTrick.length === 3) return QUICK_TURN_MS; // last to play → completes the trick

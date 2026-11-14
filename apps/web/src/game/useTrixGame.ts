@@ -19,10 +19,13 @@ const TRICK_REVIEW_MS = 2200;
 const DEAL_END_REVIEW_MS = 2600; // the trick that ENDS the deal lingers longer, so the closing cards are readable
 const TURN_LIMIT_MS = 5000;
 const QUICK_TURN_MS = 5000; // forced move / completing a trick — nothing to deliberate
+const CONTRACT_SELECT_LIMIT_MS = 15000; // choosing a contract is a real decision, not a reflex play
 
 /** How long to wait for the human before auto-playing: short when there's no real
- *  decision (a single legal card, or the last card that completes the trick). */
+ *  decision (a single legal card, or the last card that completes the trick), longer
+ *  for choosing a contract since that takes actual thought. */
 function humanTurnLimitMs(s: TrixState): number {
+  if (s.phase === 'contract-select') return CONTRACT_SELECT_LIMIT_MS;
   if (s.phase === 'playing') {
     if (legalPlays(s.hands[TRIX_HUMAN] ?? [], s.currentTrick).length <= 1) return QUICK_TURN_MS;
     if (s.currentTrick.length === 3) return QUICK_TURN_MS; // last to play → completes the trick
