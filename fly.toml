@@ -16,6 +16,13 @@ primary_region = 'fra'
   source = 'tarneeb_data'
   destination = '/data'
 
+# Both are public values (client id, not a secret; the web app's own URL) — no `fly
+# secrets` needed. WEB_ORIGIN is where verify-email/reset-password links point;
+# without it they'd default to http://localhost:5173 and be broken for real users.
+[env]
+  GOOGLE_CLIENT_ID = '856949467700-ulhs0ggcj3f998ah8nfenp3gs06f5rfk.apps.googleusercontent.com'
+  WEB_ORIGIN = 'https://tarneeb-trix-web.vercel.app'
+
 [http_service]
   internal_port = 8080
   force_https = true
