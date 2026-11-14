@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { T } from '../i18n';
 import { loadRecord } from '../game/record';
 import type { AuthState } from '../game/useAuth';
@@ -25,6 +26,11 @@ export function MainMenu({
   const rec = loadRecord();
   const recLabel = (g: GameId) =>
     rec[g].played > 0 ? t('recordWon', { won: rec[g].won, played: rec[g].played }) : null;
+  const [resendStatus, setResendStatus] = useState<'sent' | 'alreadyVerified' | null>(null);
+  const resend = async () => {
+    const result = await auth.resendVerification();
+    setResendStatus(result === 'error' ? null : result);
+  };
   return (
     <main className="menu">
       <button type="button" className="online-banner" onClick={onOnline}>
@@ -40,6 +46,22 @@ export function MainMenu({
           <button type="button" className="ghost-btn" onClick={() => void auth.signOut()}>
             {t('signOut')}
           </button>
+        </div>
+      )}
+      {auth.status === 'signedIn' && auth.account && !auth.account.emailVerified && (
+        <div className="account-verify-nudge">
+          <span>
+            {resendStatus === 'sent'
+              ? t('verificationSent')
+              : resendStatus === 'alreadyVerified'
+                ? t('verificationAlready')
+                : t('verifyEmailNudge')}
+          </span>
+          {resendStatus === null && (
+            <button type="button" className="link-btn" onClick={() => void resend()}>
+              {t('resendVerification')}
+            </button>
+          )}
         </div>
       )}
       {auth.status === 'signedOut' && (

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import { WebSocket } from 'ws';
 import { getLegalActions, type TarneebState } from '@tarneeb/engine';
@@ -268,6 +268,229 @@ describe('WebSocket authenticate: anti-spoofing guard', () => {
       const created = (await nextMsg(ws, (m) => m.t === 'lobby')) as Extract<ServerMsg, { t: 'lobby' }>;
       expect(created.state.seats[0]!.kind).toBe('human');
       ws.close();
+    } finally {
+      wss.close();
+    }
+  });
+});
+
+/** Intercepts outgoing Resend API calls (createEmailSender's fetch) and lets a test pull
+ *  the real verify/reset token out of the actual emailed link — exercising the genuine
+ *  end-to-end flow rather than bypassing it via direct DB access. */
+function mockResendCapturingLinks(): { sentTo: string[]; tokens: () => string[] } {
+  const sentTo: string[] = [];
+  const bodies: string[] = [];
+  const realFetch = globalThis.fetch;
+  // Only intercept the server's own outgoing call to Resend — everything else (the
+  // test's own fetch() calls to the local server under test) must pass through
+  // untouched, since both run through this same process-wide global.
+  globalThis.fetch = (async (url: string, init?: RequestInit) => {
+    if (url !== 'https://api.resend.com/emails') return realFetch(url, init);
+    const body = JSON.parse((init as RequestInit).body as string) as { to: string[]; html: string };
+    sentTo.push(...body.to);
+    bodies.push(body.html);
+    return { ok: true } as Response;
+  }) as typeof fetch;
+  return {
+    sentTo,
+    tokens: () => bodies.map((html) => /[?&](?:verify|reset)=([^"&\s]+)/.exec(html)?.[1] ?? ''),
+  };
+}
+
+describe('HTTP /auth/* email verification + password reset', () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.RESEND_API_KEY;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.RESEND_API_KEY;
+    else process.env.RESEND_API_KEY = originalKey;
+  });
+
+  it('a fresh signup is unverified; the emailed link verifies it', async () => {
+    process.env.RESEND_API_KEY = 'test-key';
+    const mail = mockResendCapturingLinks();
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    const base = `http://localhost:${port}`;
+    try {
+      const signupRes = await fetch(`${base}/auth/signup`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'verifyme@example.com', password: 'password123', name: 'Verify Me' }),
+      });
+      const signup = (await signupRes.json()) as AuthResponse & { account: { emailVerified: boolean } };
+      expect(signup.account.emailVerified).toBe(false);
+      expect(mail.sentTo).toEqual(['verifyme@example.com']);
+
+      const [verifyToken] = mail.tokens();
+      expect(verifyToken).toBeTruthy();
+
+      const verifyRes = await fetch(`${base}/auth/verify-email`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: verifyToken }),
+      });
+      expect(verifyRes.status).toBe(200);
+      const verified = (await verifyRes.json()) as { verified: boolean; account: { emailVerified: boolean } };
+      expect(verified.verified).toBe(true);
+      expect(verified.account.emailVerified).toBe(true);
+
+      // Single-use: verifying again with the same (now-consumed) token fails.
+      const secondTry = await fetch(`${base}/auth/verify-email`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: verifyToken }),
+      });
+      expect(secondTry.status).toBe(400);
+    } finally {
+      wss.close();
+    }
+  });
+
+  it('resend-verification requires a valid session and no-ops once already verified', async () => {
+    process.env.RESEND_API_KEY = 'test-key';
+    const mail = mockResendCapturingLinks();
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    const base = `http://localhost:${port}`;
+    try {
+      const noAuth = await fetch(`${base}/auth/resend-verification`, { method: 'POST' });
+      expect(noAuth.status).toBe(401);
+
+      const signupRes = await fetch(`${base}/auth/signup`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'resend@example.com', password: 'password123', name: 'Resend' }),
+      });
+      const signup = (await signupRes.json()) as AuthResponse;
+      expect(mail.sentTo).toHaveLength(1); // the automatic signup verification email
+
+      const resendRes = await fetch(`${base}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${signup.token}` },
+      });
+      expect(resendRes.status).toBe(200);
+      expect(mail.sentTo).toHaveLength(2); // a second email actually went out
+
+      const [, resendToken] = mail.tokens();
+      await fetch(`${base}/auth/verify-email`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: resendToken }),
+      });
+
+      const alreadyRes = await fetch(`${base}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${signup.token}` },
+      });
+      const already = (await alreadyRes.json()) as { alreadyVerified: boolean };
+      expect(already.alreadyVerified).toBe(true);
+      expect(mail.sentTo).toHaveLength(2); // no third email sent once already verified
+    } finally {
+      wss.close();
+    }
+  });
+
+  it('forgot-password always returns 200 (even for an unregistered email), only emails real accounts', async () => {
+    process.env.RESEND_API_KEY = 'test-key';
+    const mail = mockResendCapturingLinks();
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    const base = `http://localhost:${port}`;
+    try {
+      await fetch(`${base}/auth/signup`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'forgot@example.com', password: 'old-password', name: 'Forgot' }),
+      });
+      mail.sentTo.length = 0; // clear the signup-verification email so we only see the reset one
+
+      const unknownRes = await fetch(`${base}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'nobody-here@example.com' }),
+      });
+      expect(unknownRes.status).toBe(200); // never reveals whether the email is registered
+      expect(mail.sentTo).toHaveLength(0); // but nothing was actually sent for it
+
+      const knownRes = await fetch(`${base}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'forgot@example.com' }),
+      });
+      expect(knownRes.status).toBe(200);
+      expect(mail.sentTo).toEqual(['forgot@example.com']);
+    } finally {
+      wss.close();
+    }
+  });
+
+  it('a reset link sets a new password, signs the user in, and kills their old sessions', async () => {
+    process.env.RESEND_API_KEY = 'test-key';
+    const mail = mockResendCapturingLinks();
+    const wss = createGameServer(0, ':memory:');
+    const port = (wss.address() as AddressInfo).port;
+    const base = `http://localhost:${port}`;
+    try {
+      const signupRes = await fetch(`${base}/auth/signup`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'reset-http@example.com', password: 'old-password', name: 'Reset Http' }),
+      });
+      const signup = (await signupRes.json()) as AuthResponse;
+      const oldSessionStillValid = await fetch(`${base}/auth/me`, {
+        headers: { authorization: `Bearer ${signup.token}` },
+      });
+      expect(oldSessionStillValid.status).toBe(200);
+
+      await fetch(`${base}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'reset-http@example.com' }),
+      });
+      const [, resetToken] = mail.tokens(); // [0] = signup verify link, [1] = reset link
+
+      // A too-short new password is rejected WITHOUT burning the single-use token.
+      const tooShort = await fetch(`${base}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, newPassword: 'short' }),
+      });
+      expect(tooShort.status).toBe(400);
+
+      const resetRes = await fetch(`${base}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, newPassword: 'brand-new-password' }),
+      });
+      expect(resetRes.status).toBe(200);
+      const reset = (await resetRes.json()) as AuthResponse;
+
+      // The old session from signup is dead now (reset revokes everything).
+      const oldSessionNowDead = await fetch(`${base}/auth/me`, {
+        headers: { authorization: `Bearer ${signup.token}` },
+      });
+      expect(oldSessionNowDead.status).toBe(401);
+      // But reset-password handed back a fresh, working session.
+      const newSessionWorks = await fetch(`${base}/auth/me`, {
+        headers: { authorization: `Bearer ${reset.token}` },
+      });
+      expect(newSessionWorks.status).toBe(200);
+
+      // Old password no longer works; new one does.
+      const oldLogin = await fetch(`${base}/auth/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'reset-http@example.com', password: 'old-password' }),
+      });
+      expect(oldLogin.status).toBe(401);
+      const newLogin = await fetch(`${base}/auth/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'reset-http@example.com', password: 'brand-new-password' }),
+      });
+      expect(newLogin.status).toBe(200);
     } finally {
       wss.close();
     }

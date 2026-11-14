@@ -9,9 +9,31 @@ import { TrixCalculator } from './screens/TrixCalculator';
 import { OnlineScreen } from './screens/OnlineScreen';
 import { RankingsScreen } from './screens/RankingsScreen';
 import { SignInScreen } from './screens/SignInScreen';
+import { VerifyEmailScreen } from './screens/VerifyEmailScreen';
+import { ResetPasswordScreen } from './screens/ResetPasswordScreen';
 import { useAuth } from './game/useAuth';
 
-type Screen = 'menu' | GameId | CalcId | 'online' | 'rankings' | 'signin';
+type Screen = 'menu' | GameId | CalcId | 'online' | 'rankings' | 'signin' | 'verifyEmail' | 'resetPassword';
+
+/** The emailed verify/reset links land back on the app with a query param. Pure read, NO
+ *  side effect — safe to use as a useState lazy initializer even under StrictMode's
+ *  dev-mode double-invocation (an impure version of this bit the first implementation:
+ *  stripping the URL *inside* the initializer meant the second StrictMode-dev call read
+ *  an already-stripped URL and silently discarded the token). The actual URL mutation
+ *  lives in a separate effect below, where double-invocation is harmless (stripping an
+ *  already-stripped URL is a no-op). */
+function readAuthLinkParams(): { screen: Screen | null; token: string | null } {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const verify = params.get('verify');
+    const reset = params.get('reset');
+    if (verify) return { screen: 'verifyEmail', token: verify };
+    if (reset) return { screen: 'resetPassword', token: reset };
+    return { screen: null, token: null };
+  } catch {
+    return { screen: null, token: null };
+  }
+}
 
 export default function App() {
   const [lang, setLang] = useState<Lang>('en');
@@ -25,7 +47,8 @@ export default function App() {
       return 'dark';
     }
   });
-  const [screen, setScreen] = useState<Screen>('menu');
+  const [authLink] = useState(readAuthLinkParams); // read once, synchronously, before first render
+  const [screen, setScreen] = useState<Screen>(() => authLink.screen ?? 'menu');
   const [gameKey, setGameKey] = useState(0);
   const [pending, setPending] = useState<GameId | null>(null); // awaiting partnership choice
   const [partnership, setPartnership] = useState(false);
@@ -35,6 +58,15 @@ export default function App() {
   useEffect(() => {
     primeAudio();
   }, []);
+
+  useEffect(() => {
+    // Strip the ?verify=/?reset= param now that we've captured it in authLink — critical
+    // because a successful password reset reloads the page (see useAuth's doAuth), and if
+    // the param were still in the URL at that point, the reload would re-trigger this same
+    // screen in a loop. Idempotent (stripping an already-stripped URL is a no-op), so
+    // StrictMode's dev-mode double-invocation of this effect is harmless.
+    if (authLink.screen) window.history.replaceState(null, '', window.location.pathname);
+  }, [authLink.screen]);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -69,7 +101,11 @@ export default function App() {
                   ? t('rankings')
                   : screen === 'signin'
                     ? t('signIn')
-                    : t('chooseGame');
+                    : screen === 'verifyEmail'
+                      ? t('verifyEmailTitle')
+                      : screen === 'resetPassword'
+                        ? t('resetPasswordTitle')
+                        : t('chooseGame');
 
   const pick = (g: GameId) => {
     if (g === 'tarneeb') {
@@ -141,6 +177,12 @@ export default function App() {
       {screen === 'online' && <OnlineScreen t={t} onRankings={() => setScreen('rankings')} />}
       {screen === 'rankings' && <RankingsScreen t={t} />}
       {screen === 'signin' && <SignInScreen auth={auth} onDone={() => setScreen('menu')} t={t} />}
+      {screen === 'verifyEmail' && authLink.token && (
+        <VerifyEmailScreen token={authLink.token} auth={auth} onDone={() => setScreen('menu')} t={t} />
+      )}
+      {screen === 'resetPassword' && authLink.token && (
+        <ResetPasswordScreen token={authLink.token} auth={auth} onDone={() => setScreen('menu')} t={t} />
+      )}
       {screen === 'tarneeb' && <TarneebScreen key={gameKey} t={t} onExit={() => setScreen('menu')} />}
       {screen === 'trix' && (
         <TrixScreen key={gameKey} t={t} mode="regular" partnership={partnership} onExit={() => setScreen('menu')} />

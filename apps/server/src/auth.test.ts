@@ -121,4 +121,123 @@ describe('auth db: sessions', () => {
     expect(db.resolveSession(token)).toBeNull();
     db.close();
   });
+
+  it('deleteAllSessions revokes every session for the account, not just one', async () => {
+    const db = openAuthDb(':memory:');
+    const signup = await db.signupPassword('multi@example.com', 'password123', 'Multi');
+    if (signup.kind !== 'ok') throw new Error('unreachable');
+    const a = db.createSession(signup.account.accountId);
+    const b = db.createSession(signup.account.accountId);
+    expect(db.resolveSession(a.token)).not.toBeNull();
+    expect(db.resolveSession(b.token)).not.toBeNull();
+
+    db.deleteAllSessions(signup.account.accountId);
+    expect(db.resolveSession(a.token)).toBeNull();
+    expect(db.resolveSession(b.token)).toBeNull();
+    db.close();
+  });
+});
+
+describe('auth db: email verification', () => {
+  it('password accounts start unverified; Google accounts start verified', async () => {
+    const db = openAuthDb(':memory:');
+    const pw = await db.signupPassword('pw@example.com', 'password123', 'Pw');
+    if (pw.kind !== 'ok') throw new Error('unreachable');
+    expect(pw.account.emailVerified).toBe(false);
+
+    const g = db.findOrCreateGoogleAccount('sub-verify-1', 'g@example.com', 'G');
+    if (g.kind !== 'ok') throw new Error('unreachable');
+    expect(g.account.emailVerified).toBe(true);
+    db.close();
+  });
+
+  it('a verify token marks the account verified exactly once', async () => {
+    const db = openAuthDb(':memory:');
+    const signup = await db.signupPassword('verify@example.com', 'password123', 'Verify');
+    if (signup.kind !== 'ok') throw new Error('unreachable');
+    expect(signup.account.emailVerified).toBe(false);
+
+    const { token } = db.createToken(signup.account.accountId, 'verify');
+    const accountId = db.consumeToken(token, 'verify');
+    expect(accountId).toBe(signup.account.accountId);
+    db.markEmailVerified(accountId!);
+    expect(db.getAccountById(signup.account.accountId)?.emailVerified).toBe(true);
+
+    // Single-use: the same token can't be consumed again.
+    expect(db.consumeToken(token, 'verify')).toBeNull();
+    db.close();
+  });
+
+  it('a verify token cannot be used as a reset token (purpose-scoped)', async () => {
+    const db = openAuthDb(':memory:');
+    const signup = await db.signupPassword('scoped@example.com', 'password123', 'Scoped');
+    if (signup.kind !== 'ok') throw new Error('unreachable');
+    const { token } = db.createToken(signup.account.accountId, 'verify');
+    expect(db.consumeToken(token, 'reset')).toBeNull();
+    db.close();
+  });
+
+  it('returns null for an unknown or already-consumed token', () => {
+    const db = openAuthDb(':memory:');
+    expect(db.consumeToken('not-a-real-token', 'verify')).toBeNull();
+    db.close();
+  });
+});
+
+describe('auth db: password reset', () => {
+  it('a reset token lets a new password replace the old one, and old sessions die', async () => {
+    const db = openAuthDb(':memory:');
+    const signup = await db.signupPassword('reset@example.com', 'old-password', 'Reset');
+    if (signup.kind !== 'ok') throw new Error('unreachable');
+    const { token: sessionToken } = db.createSession(signup.account.accountId);
+    expect(db.resolveSession(sessionToken)).not.toBeNull();
+
+    const { token: resetToken } = db.createToken(signup.account.accountId, 'reset');
+    const accountId = db.consumeToken(resetToken, 'reset');
+    expect(accountId).toBe(signup.account.accountId);
+    await db.setPassword(accountId!, 'new-password');
+    db.deleteAllSessions(accountId!); // simulates what the HTTP route does after a reset
+
+    const oldLogin = await db.loginPassword('reset@example.com', 'old-password');
+    expect(oldLogin.kind).toBe('invalid');
+    const newLogin = await db.loginPassword('reset@example.com', 'new-password');
+    expect(newLogin.kind).toBe('ok');
+    expect(db.resolveSession(sessionToken)).toBeNull(); // revoked by the reset
+    db.close();
+  });
+});
+
+describe('auth db: migration backfills email_verified for a pre-existing DB', () => {
+  it('marks existing Google accounts verified, leaves password accounts unverified', async () => {
+    const { mkdtempSync, rmSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const dir = mkdtempSync(join(tmpdir(), 'tarneeb-auth-migration-'));
+    const dbPath = join(dir, 'auth.db');
+    try {
+      const { DatabaseSync } = process.getBuiltinModule('node:sqlite') as {
+        DatabaseSync: new (path: string) => { exec(sql: string): void; close(): void };
+      };
+      // Simulate a DB created before email_verified existed.
+      const old = new DatabaseSync(dbPath);
+      old.exec(`
+        CREATE TABLE accounts (
+          account_id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT,
+          google_sub TEXT UNIQUE, name TEXT NOT NULL, created_at INTEGER NOT NULL
+        );
+        INSERT INTO accounts (account_id, email, password_hash, google_sub, name, created_at)
+          VALUES ('acct-pw', 'legacy-pw@example.com', 'scrypt:aa:bb', NULL, 'Legacy Pw', 1);
+        INSERT INTO accounts (account_id, email, password_hash, google_sub, name, created_at)
+          VALUES ('acct-google', 'legacy-google@example.com', NULL, 'legacy-sub', 'Legacy Google', 1);
+      `);
+      old.close();
+
+      const db = openAuthDb(dbPath);
+      expect(db.getAccountById('acct-pw')?.emailVerified).toBe(false);
+      expect(db.getAccountById('acct-google')?.emailVerified).toBe(true);
+      db.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

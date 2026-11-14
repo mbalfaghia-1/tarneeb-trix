@@ -16,13 +16,16 @@ import type { DatabaseSync as DatabaseSyncType } from 'node:sqlite';
 const { DatabaseSync } = process.getBuiltinModule('node:sqlite') as { DatabaseSync: typeof DatabaseSyncType };
 
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days, rolling — see plan doc
+const VERIFY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours to click a verification link
+const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour to use a password-reset link
 const SCRYPT_KEYLEN = 64;
-const SWEEP_INTERVAL_MS = 60 * 60 * 1000; // sweep expired sessions hourly
+const SWEEP_INTERVAL_MS = 60 * 60 * 1000; // sweep expired sessions/tokens hourly
 
 export interface Account {
   readonly accountId: string;
   readonly email: string;
   readonly name: string;
+  readonly emailVerified: boolean;
 }
 
 export type AuthResult =
@@ -36,6 +39,8 @@ export type GoogleAuthResult =
   | { readonly kind: 'ok'; readonly account: Account; readonly isNew: boolean }
   | { readonly kind: 'emailTaken' }; // email belongs to an existing PASSWORD account — never auto-linked, see plan doc
 
+export type TokenPurpose = 'verify' | 'reset';
+
 export interface AuthDb {
   signupPassword(email: string, password: string, name: string): Promise<AuthResult>;
   loginPassword(email: string, password: string): Promise<AuthResult>;
@@ -47,6 +52,20 @@ export interface AuthDb {
    *  deletes the row and returns null if already expired. */
   resolveSession(token: string): Account | null;
   deleteSession(token: string): void;
+  /** Revokes every session for an account — used after a password reset, since the old
+   *  password could have been the reason a reset was needed in the first place. */
+  deleteAllSessions(accountId: string): void;
+  /** Raw token returned ONLY here, at creation. Single-purpose (verify/reset) and
+   *  single-use (see consumeToken). */
+  createToken(accountId: string, purpose: TokenPurpose): { token: string; expiresAt: number };
+  /** Looks up a token AND deletes it in the same call (single-use) — returns the account
+   *  id it belonged to, or null if the token is unknown, expired, or for a different
+   *  purpose than requested. */
+  consumeToken(token: string, purpose: TokenPurpose): string | null;
+  markEmailVerified(accountId: string): void;
+  setPassword(accountId: string, password: string): Promise<void>;
+  getAccountById(accountId: string): Account | null;
+  getAccountByEmail(email: string): Account | null;
   close(): void;
 }
 
@@ -84,6 +103,7 @@ interface AccountRow {
   password_hash: string | null;
   google_sub: string | null;
   name: string;
+  email_verified: number;
 }
 
 export function openAuthDb(path: string): AuthDb {
@@ -96,6 +116,7 @@ export function openAuthDb(path: string): AuthDb {
       password_hash TEXT,
       google_sub TEXT UNIQUE,
       name TEXT NOT NULL,
+      email_verified INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS sessions (
@@ -105,23 +126,57 @@ export function openAuthDb(path: string): AuthDb {
       expires_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_account ON sessions(account_id);
+    CREATE TABLE IF NOT EXISTS tokens (
+      token_hash TEXT PRIMARY KEY,
+      account_id TEXT NOT NULL REFERENCES accounts(account_id),
+      purpose TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_tokens_account ON tokens(account_id);
   `);
 
+  // Migration: a DB created before email_verified existed won't have the column (CREATE
+  // TABLE IF NOT EXISTS above is a no-op on an existing table) — add it. Existing Google
+  // accounts are backfilled to verified (Google already vouched for that email); existing
+  // password accounts stay unverified, same as if they'd just signed up today.
+  const existingCols = db.prepare(`PRAGMA table_info(accounts)`).all() as { name: string }[];
+  if (!existingCols.some((c) => c.name === 'email_verified')) {
+    db.exec(`ALTER TABLE accounts ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`);
+    db.exec(`UPDATE accounts SET email_verified = 1 WHERE google_sub IS NOT NULL`);
+  }
+
   const insertAccount = db.prepare(
-    `INSERT INTO accounts (account_id, email, password_hash, google_sub, name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO accounts (account_id, email, password_hash, google_sub, name, email_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
   const byEmail = db.prepare(`SELECT * FROM accounts WHERE email = ?`);
   const byGoogleSub = db.prepare(`SELECT * FROM accounts WHERE google_sub = ?`);
   const byAccountId = db.prepare(`SELECT * FROM accounts WHERE account_id = ?`);
+  const updatePasswordHash = db.prepare(`UPDATE accounts SET password_hash = ? WHERE account_id = ?`);
+  const setVerified = db.prepare(`UPDATE accounts SET email_verified = 1 WHERE account_id = ?`);
   const insertSession = db.prepare(`INSERT INTO sessions (token_hash, account_id, created_at, expires_at) VALUES (?, ?, ?, ?)`);
   const sessionByHash = db.prepare(`SELECT * FROM sessions WHERE token_hash = ?`);
   const touchSession = db.prepare(`UPDATE sessions SET expires_at = ? WHERE token_hash = ?`);
   const deleteSessionByHash = db.prepare(`DELETE FROM sessions WHERE token_hash = ?`);
-  const sweepExpired = db.prepare(`DELETE FROM sessions WHERE expires_at < ?`);
+  const deleteSessionsByAccount = db.prepare(`DELETE FROM sessions WHERE account_id = ?`);
+  const sweepExpiredSessions = db.prepare(`DELETE FROM sessions WHERE expires_at < ?`);
+  const insertToken = db.prepare(`INSERT INTO tokens (token_hash, account_id, purpose, created_at, expires_at) VALUES (?, ?, ?, ?, ?)`);
+  const tokenByHash = db.prepare(`SELECT * FROM tokens WHERE token_hash = ?`);
+  const deleteTokenByHash = db.prepare(`DELETE FROM tokens WHERE token_hash = ?`);
+  const sweepExpiredTokens = db.prepare(`DELETE FROM tokens WHERE expires_at < ?`);
 
-  const toAccount = (row: AccountRow): Account => ({ accountId: row.account_id, email: row.email, name: row.name });
+  const toAccount = (row: AccountRow): Account => ({
+    accountId: row.account_id,
+    email: row.email,
+    name: row.name,
+    emailVerified: row.email_verified === 1,
+  });
 
-  const sweepTimer = setInterval(() => sweepExpired.run(Date.now()), SWEEP_INTERVAL_MS);
+  const sweepTimer = setInterval(() => {
+    const now = Date.now();
+    sweepExpiredSessions.run(now);
+    sweepExpiredTokens.run(now);
+  }, SWEEP_INTERVAL_MS);
   sweepTimer.unref?.(); // don't keep the process alive just for this
 
   return {
@@ -135,8 +190,8 @@ export function openAuthDb(path: string): AuthDb {
 
       const accountId = randomUUID();
       const passwordHash = await hashPassword(password);
-      insertAccount.run(accountId, email, passwordHash, null, name, Date.now());
-      return { kind: 'ok', account: { accountId, email, name } };
+      insertAccount.run(accountId, email, passwordHash, null, name, 0, Date.now());
+      return { kind: 'ok', account: { accountId, email, name, emailVerified: false } };
     },
 
     async loginPassword(emailIn, password) {
@@ -164,8 +219,9 @@ export function openAuthDb(path: string): AuthDb {
       }
 
       const accountId = randomUUID();
-      insertAccount.run(accountId, email, null, sub, name, Date.now());
-      return { kind: 'ok', account: { accountId, email, name }, isNew: true };
+      // Google already verified this email, so mark it verified immediately.
+      insertAccount.run(accountId, email, null, sub, name, 1, Date.now());
+      return { kind: 'ok', account: { accountId, email, name, emailVerified: true }, isNew: true };
     },
 
     createSession(accountId) {
@@ -191,6 +247,47 @@ export function openAuthDb(path: string): AuthDb {
 
     deleteSession(token) {
       deleteSessionByHash.run(sha256Hex(token));
+    },
+
+    deleteAllSessions(accountId) {
+      deleteSessionsByAccount.run(accountId);
+    },
+
+    createToken(accountId, purpose) {
+      const token = randomBytes(32).toString('base64url');
+      const now = Date.now();
+      const ttl = purpose === 'verify' ? VERIFY_TTL_MS : RESET_TTL_MS;
+      const expiresAt = now + ttl;
+      insertToken.run(sha256Hex(token), accountId, purpose, now, expiresAt);
+      return { token, expiresAt };
+    },
+
+    consumeToken(token, purpose) {
+      const tokenHash = sha256Hex(token);
+      const row = tokenByHash.get(tokenHash) as { account_id: string; purpose: string; expires_at: number } | undefined;
+      if (!row) return null;
+      deleteTokenByHash.run(tokenHash); // single-use: gone whether or not it turns out valid
+      if (row.purpose !== purpose || row.expires_at < Date.now()) return null;
+      return row.account_id;
+    },
+
+    markEmailVerified(accountId) {
+      setVerified.run(accountId);
+    },
+
+    async setPassword(accountId, password) {
+      const hash = await hashPassword(password);
+      updatePasswordHash.run(hash, accountId);
+    },
+
+    getAccountById(accountId) {
+      const row = byAccountId.get(accountId) as AccountRow | undefined;
+      return row ? toAccount(row) : null;
+    },
+
+    getAccountByEmail(emailIn) {
+      const row = byEmail.get(normalizeEmail(emailIn)) as AccountRow | undefined;
+      return row ? toAccount(row) : null;
     },
 
     close() {

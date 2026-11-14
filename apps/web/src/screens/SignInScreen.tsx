@@ -1,27 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { T } from '../i18n';
-import type { AuthErrorKind, AuthState } from '../game/useAuth';
+import { authErrorText, type AuthState } from '../game/useAuth';
 import { loadGoogleIdentity } from '../lib/loadGoogleIdentity';
 
 const GOOGLE_CLIENT_ID =
   (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_GOOGLE_CLIENT_ID || '';
-
-function errorText(kind: AuthErrorKind, t: T): string {
-  switch (kind) {
-    case 'emailTaken':
-      return t('authErrEmailTaken');
-    case 'googleOnly':
-      return t('authErrGoogleOnly');
-    case 'invalid':
-      return t('authErrInvalid');
-    case 'invalidInput':
-      return t('authErrInvalidInput');
-    case 'invalidToken':
-      return t('authErrInvalidToken');
-    case 'network':
-      return t('connErrBody');
-  }
-}
 
 export function SignInScreen({
   auth,
@@ -32,11 +15,12 @@ export function SignInScreen({
   onDone: () => void;
   t: T;
 }) {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
   // Google button: only attempted when a Client ID is actually configured (Phase 0 of
@@ -74,6 +58,43 @@ export function SignInScreen({
     setSubmitting(false);
     if (ok) onDone(); // unreachable in practice — a successful sign-in reloads the app
   };
+
+  const submitForgot = async () => {
+    setSubmitting(true);
+    await auth.forgotPassword(email); // always "succeeds" by design — see useAuth.forgotPassword
+    setSubmitting(false);
+    setForgotSent(true);
+  };
+
+  if (mode === 'forgot') {
+    return (
+      <main className="online">
+        <div className="online-card">
+          {forgotSent ? (
+            <p className="online-hint">{t('forgotPasswordSent')}</p>
+          ) : (
+            <>
+              <label className="online-field">
+                <span>{t('email')}</span>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+              </label>
+              <button
+                type="button"
+                className="primary-btn"
+                disabled={submitting || !email}
+                onClick={() => void submitForgot()}
+              >
+                {t('sendResetLink')}
+              </button>
+            </>
+          )}
+          <button type="button" className="ghost-btn" onClick={() => setMode('signin')}>
+            {t('backToSignIn')}
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="online">
@@ -118,8 +139,13 @@ export function SignInScreen({
             autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
           />
         </label>
+        {mode === 'signin' && (
+          <button type="button" className="link-btn" onClick={() => setMode('forgot')}>
+            {t('forgotPassword')}
+          </button>
+        )}
 
-        {auth.error && <p className="online-error">{errorText(auth.error, t)}</p>}
+        {auth.error && <p className="online-error">{authErrorText(auth.error, t)}</p>}
 
         <button
           type="button"

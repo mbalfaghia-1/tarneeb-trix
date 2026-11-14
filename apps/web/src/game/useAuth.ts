@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { T } from '../i18n';
 
 const SERVER_URL =
   (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_SERVER_URL ||
@@ -14,6 +15,7 @@ export interface Account {
   accountId: string;
   email: string;
   name: string;
+  emailVerified: boolean;
 }
 
 export type AuthErrorKind = 'emailTaken' | 'invalid' | 'googleOnly' | 'invalidInput' | 'invalidToken' | 'network';
@@ -27,6 +29,17 @@ export interface AuthState {
   signIn: (email: string, password: string) => Promise<boolean>;
   signInWithGoogle: (idToken: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  /** Re-sends the verification email to the signed-in account. Requires being signed in. */
+  resendVerification: () => Promise<'sent' | 'alreadyVerified' | 'error'>;
+  /** Always resolves true (the server never reveals whether the email was registered) —
+   *  false only means the request itself failed to reach the server. */
+  forgotPassword: (email: string) => Promise<boolean>;
+  /** Consumes a password-reset token (from the emailed link) and signs the user in with
+   *  their new password — same reload-on-success behavior as signUp/signIn. */
+  resetPassword: (token: string, newPassword: string) => Promise<boolean>;
+  /** Consumes an email-verification token (from the emailed link). Does NOT reload — it
+   *  only flips a flag, never changes identity — but refreshes `account` if signed in. */
+  verifyEmail: (token: string) => Promise<boolean>;
 }
 
 function loadToken(): string | null {
@@ -74,6 +87,24 @@ interface AuthOkResponse {
 interface AuthErrorResponse {
   error: string;
   message?: string;
+}
+
+/** Shared error-message mapping used by every auth-related screen. */
+export function authErrorText(kind: AuthErrorKind, t: T): string {
+  switch (kind) {
+    case 'emailTaken':
+      return t('authErrEmailTaken');
+    case 'googleOnly':
+      return t('authErrGoogleOnly');
+    case 'invalid':
+      return t('authErrInvalid');
+    case 'invalidInput':
+      return t('authErrInvalidInput');
+    case 'invalidToken':
+      return t('authErrInvalidToken');
+    case 'network':
+      return t('connErrBody');
+  }
 }
 
 export function useAuth(): AuthState {
@@ -146,6 +177,10 @@ export function useAuth(): AuthState {
     [doAuth],
   );
   const signInWithGoogle = useCallback((idToken: string) => doAuth('/auth/google', { idToken }), [doAuth]);
+  const resetPassword = useCallback(
+    (token: string, newPassword: string) => doAuth('/auth/reset-password', { token, newPassword }),
+    [doAuth],
+  );
 
   const signOut = useCallback(async () => {
     const token = loadToken();
@@ -160,5 +195,72 @@ export function useAuth(): AuthState {
     location.reload();
   }, []);
 
-  return { status, account, error, signUp, signIn, signInWithGoogle, signOut };
+  const resendVerification = useCallback(async (): Promise<'sent' | 'alreadyVerified' | 'error'> => {
+    const token = loadToken();
+    if (!token) return 'error';
+    try {
+      const res = await fetch(`${HTTP_BASE}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return 'error';
+      const data = (await res.json()) as { sent?: boolean; alreadyVerified?: boolean };
+      return data.alreadyVerified ? 'alreadyVerified' : 'sent';
+    } catch {
+      return 'error';
+    }
+  }, []);
+
+  const forgotPassword = useCallback(async (email: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${HTTP_BASE}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const verifyEmail = useCallback(async (token: string): Promise<boolean> => {
+    let res: Response;
+    try {
+      res = await fetch(`${HTTP_BASE}/auth/verify-email`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+    } catch {
+      return false;
+    }
+    if (!res.ok) return false;
+    // Refresh the signed-in account's state (if this device is signed in as that account)
+    // rather than a hard reload — verifying doesn't change identity, just a flag.
+    const sessionToken = loadToken();
+    if (sessionToken) {
+      try {
+        const meRes = await fetch(`${HTTP_BASE}/auth/me`, { headers: { authorization: `Bearer ${sessionToken}` } });
+        if (meRes.ok) setAccount(((await meRes.json()) as { account: Account }).account);
+      } catch {
+        /* best-effort refresh — the verification itself already succeeded */
+      }
+    }
+    return true;
+  }, []);
+
+  return {
+    status,
+    account,
+    error,
+    signUp,
+    signIn,
+    signInWithGoogle,
+    signOut,
+    resendVerification,
+    forgotPassword,
+    resetPassword,
+    verifyEmail,
+  };
 }

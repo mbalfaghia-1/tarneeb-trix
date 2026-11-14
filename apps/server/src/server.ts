@@ -10,6 +10,7 @@ import { Lobby } from './lobby.js';
 import { openRankingsDb, type RankingsDb } from './db.js';
 import { openAuthDb, type AuthDb } from './auth.js';
 import { verifyGoogleIdToken } from './google.js';
+import { createEmailSender, type EmailSender } from './email.js';
 
 interface Conn {
   socket: WebSocket;
@@ -79,10 +80,25 @@ function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
+function verifyEmailHtml(link: string): string {
+  return `<p>Welcome to Tarneeb &amp; Trix! Click the link below to verify your email address:</p>
+<p><a href="${link}">${link}</a></p>
+<p>This link expires in 24 hours. If you didn't create this account, you can ignore this email.</p>`;
+}
+
+function resetPasswordHtml(link: string): string {
+  return `<p>We received a request to reset your Tarneeb &amp; Trix password. Click the link below to choose a new one:</p>
+<p><a href="${link}">${link}</a></p>
+<p>This link expires in 1 hour and can only be used once. If you didn't request this, you can safely ignore this email.</p>`;
+}
+
 export function createGameServer(port: number, dbPath: string = defaultDbPath()): WebSocketServer {
   const db: RankingsDb = openRankingsDb(dbPath);
   const authDb: AuthDb = openAuthDb(dbPath);
   const googleClientId = process.env.GOOGLE_CLIENT_ID ?? '';
+  const emailSender: EmailSender = createEmailSender();
+  // Where the web app lives — used to build the links inside verify/reset emails.
+  const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
   const recordedResults = new Set<string>(); // table codes already written, so pump() can't double-record
 
   const rateLimits = new Map<string, { count: number; windowStart: number }>();
@@ -166,6 +182,17 @@ export function createGameServer(port: number, dbPath: string = defaultDbPath())
         sendJson(res, status, result);
         return;
       }
+      if (url.pathname === '/auth/signup') {
+        // Fire-and-verify: send immediately, but never fail the signup itself over it —
+        // emailSender.send() already swallows its own errors and returns false, so this
+        // is safe to await without extra try/catch.
+        const { token } = authDb.createToken(result.account.accountId, 'verify');
+        await emailSender.send(
+          result.account.email,
+          'Verify your email — Tarneeb & Trix',
+          verifyEmailHtml(`${webOrigin}/?verify=${token}`),
+        );
+      }
       const session = authDb.createSession(result.account.accountId);
       sendJson(res, 200, { token: session.token, expiresAt: session.expiresAt, account: result.account });
       return;
@@ -201,6 +228,113 @@ export function createGameServer(port: number, dbPath: string = defaultDbPath())
         account: result.account,
         isNew: result.isNew,
       });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/auth/resend-verification') {
+      if (!checkRateLimit(clientIp(req))) {
+        sendJson(res, 429, { error: 'rateLimited' });
+        return;
+      }
+      const token = bearerToken(req);
+      const account = token ? authDb.resolveSession(token) : null;
+      if (!account) {
+        sendJson(res, 401, { error: 'invalid' });
+        return;
+      }
+      if (account.emailVerified) {
+        sendJson(res, 200, { alreadyVerified: true });
+        return;
+      }
+      const { token: verifyToken } = authDb.createToken(account.accountId, 'verify');
+      await emailSender.send(
+        account.email,
+        'Verify your email — Tarneeb & Trix',
+        verifyEmailHtml(`${webOrigin}/?verify=${verifyToken}`),
+      );
+      sendJson(res, 200, { sent: true });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/auth/verify-email') {
+      let body: Record<string, unknown>;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'invalidInput', message: 'malformed request body' });
+        return;
+      }
+      const accountId = authDb.consumeToken(str(body.token), 'verify');
+      if (!accountId) {
+        sendJson(res, 400, { error: 'invalidToken' });
+        return;
+      }
+      authDb.markEmailVerified(accountId);
+      const account = authDb.getAccountById(accountId);
+      sendJson(res, 200, { verified: true, account });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/auth/forgot-password') {
+      if (!checkRateLimit(clientIp(req))) {
+        sendJson(res, 429, { error: 'rateLimited' });
+        return;
+      }
+      let body: Record<string, unknown>;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'invalidInput', message: 'malformed request body' });
+        return;
+      }
+      const account = authDb.getAccountByEmail(str(body.email));
+      if (account) {
+        const { token: resetToken } = authDb.createToken(account.accountId, 'reset');
+        await emailSender.send(
+          account.email,
+          'Reset your password — Tarneeb & Trix',
+          resetPasswordHtml(`${webOrigin}/?reset=${resetToken}`),
+        );
+      }
+      // Always 200, whether or not the email was registered — an endpoint that answers
+      // differently either way could be used to check who has an account.
+      sendJson(res, 200, { sent: true });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/auth/reset-password') {
+      if (!checkRateLimit(clientIp(req))) {
+        sendJson(res, 429, { error: 'rateLimited' });
+        return;
+      }
+      let body: Record<string, unknown>;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'invalidInput', message: 'malformed request body' });
+        return;
+      }
+      const newPassword = str(body.newPassword);
+      if (newPassword.length < 8) {
+        // Validate BEFORE touching the token — it's single-use, so a client-side-
+        // preventable error shouldn't burn it and force requesting a new email.
+        sendJson(res, 400, { error: 'invalidInput', message: 'password must be at least 8 characters' });
+        return;
+      }
+      const accountId = authDb.consumeToken(str(body.token), 'reset');
+      if (!accountId) {
+        sendJson(res, 400, { error: 'invalidToken' });
+        return;
+      }
+      await authDb.setPassword(accountId, newPassword);
+      authDb.deleteAllSessions(accountId); // the old password could be why a reset was needed
+      const account = authDb.getAccountById(accountId);
+      if (!account) {
+        sendJson(res, 500, { error: 'internal' });
+        return;
+      }
+      const session = authDb.createSession(accountId); // sign them in immediately post-reset
+      sendJson(res, 200, { token: session.token, expiresAt: session.expiresAt, account });
       return;
     }
 
