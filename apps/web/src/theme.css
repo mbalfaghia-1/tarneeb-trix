@@ -216,31 +216,27 @@ html, body, #root {
 .seat-left { left: clamp(6px, 1.5vw, 14px); top: 45%; transform: translateY(-50%); }
 .seat-right { right: clamp(6px, 1.5vw, 14px); top: 45%; transform: translateY(-50%); }
 
-/* Doubled/"2" badges float beside the seat (absolutely positioned, so they add
-   no height to .seat's own box) rather than stacking below it — a seat holding
-   several doubled cards (up to 3 chips in Trix Complex) can then grow sideways,
-   where there's slack, instead of growing into the trick area's shared
-   vertical band (top/bottom seats) or toward the screen edge (left/right
-   seats). Always anchored toward the table's horizontal center. Because this
-   is position:absolute, it's also excluded from the --seat-top-h/
-   --seat-bottom-h measurements (see useElementHeight) that size the trick
-   area's safe band — exactly the point, since badges here can no longer
-   collide with it regardless of how many chips are showing. */
-.seat-side-badges {
-  position: absolute; top: 50%; transform: translateY(-50%);
-  display: flex; flex-direction: column; gap: 4px; z-index: 16;
-}
-.seat-top .seat-side-badges, .seat-bottom .seat-side-badges { left: 100%; margin-left: 8px; }
-.seat-left .seat-side-badges { left: 100%; margin-left: 8px; }
-.seat-right .seat-side-badges { right: 100%; margin-right: 8px; }
-
 .nameplate {
+  position: relative;
   display: flex; align-items: center; gap: 7px;
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1.5px solid var(--border);
   border-radius: 24px;
   padding: 4px 12px 4px 4px;
   box-shadow: 0 4px 14px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* Doubled/"2" badges overlay the SAME corner of the nameplate for every seat —
+   not appended to one side or the other (which looked inconsistent between
+   left/right vs top/bottom, flagged live against a reference UI). Pinned to a
+   fixed-size card (.nameplate is position:relative), so it can't add height
+   to .seat's own box (excluded from the --seat-top-h/--seat-bottom-h
+   measurements that size the trick area's band — see useElementHeight) and
+   wraps within a capped width instead of growing a line wider. */
+.seat-side-badges {
+  position: absolute; top: -6px; right: -6px;
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px;
+  max-width: 76px; z-index: 20;
 }
 .nameplate.active { border-color: var(--accent); }
 .avatar-wrap { position: relative; flex-shrink: 0; width: 36px; height: 36px; }
@@ -900,13 +896,15 @@ html, body, #root {
   color: #d94; /* amber for negative running score */
 }
 
-/* Exposed 2s shown as small badges on the holder's seat. */
-.seat-twos { display: flex; gap: 4px; }
+/* Exposed 2s / doubled-card indicator, shown as small corner badges on the
+   holder's seat (.seat-side-badges) — sized to fit a handful of these in a
+   ~76px-wide corner cluster. */
 .two-chip {
-  font-size: 16px; font-weight: 800; color: var(--text);
+  font-size: 12px; font-weight: 800; color: var(--text);
   background: var(--surface); border: 1px solid var(--accent);
-  border-radius: 8px; padding: 1px 7px; line-height: 1.2;
+  border-radius: 7px; padding: 1px 5px; line-height: 1.3;
   font-family: 'Segoe UI Symbol', 'Apple Symbols', sans-serif;
+  box-shadow: 0 2px 6px var(--shadow);
 }
 .two-chip.red { color: var(--card-red); }
 
@@ -982,10 +980,3 @@ html, body, #root {
 }
 .double-actions { display: flex; gap: 10px; justify-content: center; }
 .double-actions .primary-btn:disabled { opacity: 0.5; cursor: default; }
-
-/* Doubled penalty cards ride on the seat of the player who revealed them. */
-.seat-doubled { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.dbl-tag {
-  font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
-  color: var(--accent);
-}
