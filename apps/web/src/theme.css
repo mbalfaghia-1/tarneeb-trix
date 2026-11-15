@@ -1153,8 +1153,9 @@ button { font-family: inherit; }
 @media (max-width: 640px) { .topbar h1 { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
 
 /* Responsive game chrome: safe-area aware, touch-first, orientation-specific. */
-.hand-card { margin-left: calc(var(--card-w) * -0.5); flex-shrink: 0; }
-.hand-card.suit-break { margin-left: max(2px, 0.8vw); }
+.hand { max-width: 100%; overflow-x: auto; padding-block: 22px 2px; scrollbar-width: thin; }
+.hand-card { margin-left: var(--hand-offset, calc(var(--card-w) * -0.5)); flex-shrink: 0; }
+.hand-card.suit-break { margin-left: var(--hand-offset, calc(var(--card-w) * -0.5)); }
 .topbar { flex-shrink: 0; gap: 8px; flex-wrap: wrap; }
 .topbar h1 { min-width: 0; letter-spacing: 0; }
 .topbar-actions { flex-wrap: wrap; justify-content: flex-end; }

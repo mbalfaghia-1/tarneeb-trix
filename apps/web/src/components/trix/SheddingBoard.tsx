@@ -1,6 +1,7 @@
 import { useRef, useLayoutEffect, useState, type CSSProperties } from 'react';
 import { SUIT_SYMBOL, SUIT_IS_RED, type Card, type Rank, type Suit, type TrixState } from '@tarneeb/engine';
 import { CardView } from '../CardView';
+import { tableauLayout } from '../../game/cardLayout';
 
 const COL_SUITS: readonly Suit[] = ['S', 'H', 'C', 'D'];
 
@@ -50,17 +51,11 @@ export function SheddingBoard({ state }: { state: TrixState }) {
     if (!board) return;
     const measure = () => {
       const height = Math.max(0, board.clientHeight - 4);
-      const steps = longest - 1;
-      // Fit a complete run, keeping each exposed rank legible. Only very
-      // short phone landscapes need the scroll fallback at the 36px floor.
-      // Step scales gently with card size, so long runs keep cards large
-      // instead of shrinking with every card added.
-      const fit = (height - 4 * steps) / (1.4 + 0.2 * steps);
-      const width = Math.max(44, Math.min(110, fit, (board.clientWidth - 36) / 4));
+      const layout = tableauLayout(height, board.clientWidth, longest);
       setSize({
-        '--card-w': `${width}px`,
-        '--card-h': `${width * 1.4}px`,
-        '--shed-step': `${Math.max(14, width * 0.2 + 4)}px`,
+        '--card-w': `${layout.width}px`,
+        '--card-h': `${layout.height}px`,
+        '--shed-step': `${layout.step}px`,
       } as CSSProperties);
     };
     measure();
