@@ -361,6 +361,17 @@ html, body, #root {
   width: clamp(180px, 38vmin, 380px);
   top: calc(clamp(4px, 1vh, 10px) + var(--seat-top-h, 70px) + var(--ui-gap) + 6px);
   bottom: calc(var(--card-lg-h) + var(--ui-edge) + var(--seat-bottom-h, 90px) + 10px + env(safe-area-inset-bottom, 0px));
+  /* top+bottom alone let the box's height become "whatever's left" between the
+     seats — in landscape that gap can be shorter than two stacked lg cards, so
+     .trick-card.at-top/.at-bottom (anchored to the box's own top:0/bottom:0)
+     collapsed into one overlapping cluster with .at-left/.at-right, making it
+     unreadable which seat played which card (reported live). This floor keeps
+     the four cardinal positions apart regardless of how tight that band gets;
+     a min-height wins over a too-small top+bottom gap, which can push the box
+     slightly past the measured seat-safe zone in extreme cases — an acceptable
+     trade since distinguishable cards matter more than that last bit of
+     clearance, and this only engages when space is genuinely very tight. */
+  min-height: calc(var(--card-lg-h) * 2.3);
   z-index: 12;
 }
 .trick-card { position: absolute; }
@@ -896,6 +907,18 @@ html, body, #root {
   color: #d94; /* amber for negative running score */
 }
 
+/* In landscape, the top/bottom seats' live tricks/penalty tally sits directly
+   in the band between the seat and the middle trick/shedding area — hiding it
+   there (requested live, specifically scoped to top/bottom + landscape only)
+   gives that band more room. Left/right and portrait are unaffected: their
+   layout doesn't compete for the same vertical space. */
+@media (orientation: landscape) {
+  .seat-top .trix-tricks, .seat-top .trix-penalty,
+  .seat-bottom .trix-tricks, .seat-bottom .trix-penalty {
+    display: none;
+  }
+}
+
 /* Exposed 2s / doubled-card indicator, shown as small corner badges on the
    holder's seat (.seat-side-badges) — sized to fit a handful of these in a
    ~76px-wide corner cluster. */
@@ -911,13 +934,17 @@ html, body, #root {
 /* Centre the shedding board in the BAND between the top seat and the bottom seat/hand.
    Uses the same real-measured --seat-bottom-h/--seat-top-h as .trick-area, for the
    same reason: either seat can show "2" chips during shedding, and a fixed guess
-   can't account for that (or for --card-lg-h changing with orientation). */
+   can't account for that (or for --card-lg-h changing with orientation).
+   overflow-y: auto (not hidden) because ShedCol now always keeps each card's
+   rank readable (see its measure()), which can make a long run taller than
+   this band — scrolling keeps those cards reachable instead of silently
+   clipping them the way overflow:hidden previously did. */
 .shedding-board {
   position: absolute; left: 50%; transform: translateX(-50%);
   top: calc(clamp(4px, 1vh, 10px) + var(--seat-top-h, 70px) + var(--ui-gap) + 6px);
   bottom: calc(var(--card-lg-h) + var(--ui-edge) + var(--seat-bottom-h, 90px) + 10px + env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: row; justify-content: center; align-items: flex-start;
-  gap: clamp(4px, 1vw, 12px); z-index: 12; max-width: 96%; overflow: hidden;
+  gap: clamp(4px, 1vw, 12px); z-index: 12; max-width: 96%; overflow-x: hidden; overflow-y: auto;
 }
 .shed-col { display: flex; flex-direction: column; align-items: center; }
 .shed-card:first-child { margin-top: 0 !important; }

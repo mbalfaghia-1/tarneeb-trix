@@ -20,21 +20,21 @@ function ShedCol({ cards, suit }: { cards: Card[]; suit: Suit }) {
     const cardEl = col.querySelector('.card') as HTMLElement | null;
     if (!cardEl) return;
     const cardH = cardEl.offsetHeight;
-    const availH = col.parentElement?.clientHeight ?? 400;
-    // Prefer a readable 30%-of-card-height sliver per card, but never more than
-    // what actually fits in availH — the old version used a hard 30% floor with
-    // no ceiling, so a long run (e.g. 11 cards of one suit still in play) could
-    // demand more height than was available. Since .shedding-board clips with
-    // overflow:hidden, the column silently overflowed downward and whichever
-    // cards fell past the visible edge were just gone (not scrollable, not
-    // indicated) — reported live: a player's next legal card implied several
-    // ranks had already been played that weren't visible anywhere on screen.
-    // Capping at the fit-based gap guarantees the whole column always fits,
-    // even if that means a thin 2px sliver per card in extreme cases.
-    const idealGap = cardH * 0.3;
-    const fitGap = (availH - cardH) / (cards.length - 1);
-    const visiblePerCard = Math.max(2, Math.min(idealGap, fitGap));
-    setOverlap(Math.max(0, cardH - visiblePerCard));
+    // The exposed sliver must be tall enough to actually show the rank in the
+    // top-left corner (CardView's `.corner.tl`, offset 5px from the card's own
+    // top edge) — a sliver thinner than that still technically renders the
+    // card, but shows nothing legible, which is just as unusable as the
+    // earlier clipping bug this replaced (a player couldn't tell a doubled
+    // run had reached down to e.g. a jack vs. a queen). Suit isn't needed in
+    // the sliver since the whole column is already one suit.
+    //
+    // Always use this readable sliver, even if that makes the column taller
+    // than the available band — .shedding-board scrolls (overflow-y: auto)
+    // rather than clipping in that case, so a long run stays reachable
+    // instead of either disappearing (the original clipping bug) or
+    // rendering too thin to read (what capping this at "whatever fits" did).
+    const minReadableSliver = Math.max(18, cardH * 0.22 + 8);
+    setOverlap(Math.max(0, cardH - minReadableSliver));
   }, [cards.length]);
 
   useLayoutEffect(measure, [measure]);
