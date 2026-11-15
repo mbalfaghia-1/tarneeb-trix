@@ -22,8 +22,14 @@ function ShedCol({ cards, suit, grid }: { cards: Card[]; suit: Suit; grid: boole
     );
   }
 
+  // Fixed slot per rank: the Jack never moves; lower cards grow one way and
+  // higher cards the other, inside space already reserved for all 13 ranks.
+  const lead = grid ? cards[0]!.rank - 2 : 14 - cards[0]!.rank;
   return (
     <div className="shed-col">
+      {lead > 0 && (
+        <div className="shed-lead" aria-hidden="true" style={grid ? { width: `calc(${lead} * var(--shed-step))`, flexShrink: 0 } : { height: `calc(${lead} * var(--shed-step))`, flexShrink: 0 }} />
+      )}
       {cards.map((card, i) => (
         <div
           className="shed-card"

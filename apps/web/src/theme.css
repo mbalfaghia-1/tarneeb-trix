@@ -954,7 +954,7 @@ html, body, #root {
   gap: clamp(4px, 1vw, 12px); z-index: 12; max-width: 96%; overflow-x: hidden; overflow-y: auto;
 }
 .shed-col { display: flex; flex-direction: column; align-items: center; }
-.shed-card:first-child { margin-top: 0 !important; }
+.shed-col > .shed-card:first-child { margin-top: 0 !important; }
 .shed-empty {
   width: var(--card-w, clamp(80px, 8.5vw, 130px));
   height: var(--card-h, clamp(114px, 12.1vw, 186px));
@@ -1311,7 +1311,7 @@ button { font-family: inherit; }
 .shedding-board.is-grid .shed-card .card.lg .corner.tl { flex-direction: column; left: 3px; gap: 0; align-items: center; }
 .shedding-board.is-grid .shed-card .card.lg .corner .rank { letter-spacing: -1.5px; font-size: calc(var(--card-w) * 0.27); }
 .shedding-board.is-grid .shed-col { width: calc(var(--card-w) + 12 * var(--shed-step)); }
-.shedding-board.is-grid .shed-col:nth-child(odd) { justify-content: flex-end; }
+.shedding-board.is-grid .shed-col { justify-content: flex-start; }
 
 .shedding-board.is-stack { grid-template-columns: max-content; gap: 0; align-content: start; }
 .shedding-board.is-stack .shed-col { justify-content: flex-start !important; }
