@@ -11,7 +11,7 @@ function rangeCards(suit: Suit, low: Rank, high: Rank): Card[] {
   return out;
 }
 
-function ShedCol({ cards, suit }: { cards: Card[]; suit: Suit }) {
+function ShedCol({ cards, suit, grid }: { cards: Card[]; suit: Suit; grid: boolean }) {
   if (cards.length === 0) {
     return (
       <div className="shed-col">
@@ -28,7 +28,7 @@ function ShedCol({ cards, suit }: { cards: Card[]; suit: Suit }) {
         <div
           className="shed-card"
           key={card.rank}
-          style={i > 0 ? { marginTop: 'calc(var(--shed-step) - var(--card-h))' } : undefined}
+          style={i > 0 ? (grid ? { marginInlineStart: 'calc(var(--shed-step) - var(--card-w))' } : { marginTop: 'calc(var(--shed-step) - var(--card-h))' }) : undefined}
         >
           <CardView card={card} size="lg" />
         </div>
@@ -41,6 +41,8 @@ function ShedCol({ cards, suit }: { cards: Card[]; suit: Suit }) {
 export function SheddingBoard({ state }: { state: TrixState }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<CSSProperties>({});
+  const [mode, setMode] = useState<'columns' | 'grid' | 'stack'>('columns');
+  const grid = mode !== 'columns';
   const longest = Math.max(1, ...COL_SUITS.map(suit => {
     const run = state.layout[suit];
     return run ? run.high - run.low + 1 : 0;
@@ -52,10 +54,12 @@ export function SheddingBoard({ state }: { state: TrixState }) {
     const measure = () => {
       const height = Math.max(0, board.clientHeight - 4);
       const layout = tableauLayout(height, board.clientWidth, longest);
+      setMode(layout.mode);
       setSize({
         '--card-w': `${layout.width}px`,
         '--card-h': `${layout.height}px`,
         '--shed-step': `${layout.step}px`,
+        '--shed-row-step': `${'rowStep' in layout ? layout.rowStep : 0}px`,
       } as CSSProperties);
     };
     measure();
@@ -65,11 +69,12 @@ export function SheddingBoard({ state }: { state: TrixState }) {
   }, [longest]);
 
   return (
-    <div className="shedding-board" ref={ref} style={size} aria-label="Trix tableau" tabIndex={0}>
+    <div className={`shedding-board${grid ? ' is-grid' : ''}${mode === 'stack' ? ' is-stack' : ''}`} ref={ref} style={size} aria-label="Trix tableau" tabIndex={0}>
       {COL_SUITS.map((suit) => {
         const r = state.layout[suit];
-        const cards = r ? rangeCards(suit, r.low, r.high).reverse() : [];
-        return <ShedCol key={suit} cards={cards} suit={suit} />;
+        const run = r ? rangeCards(suit, r.low, r.high) : [];
+        const cards = grid ? run : run.reverse();
+        return <ShedCol key={suit} cards={cards} suit={suit} grid={grid} />;
       })}
     </div>
   );

@@ -1299,3 +1299,21 @@ button { font-family: inherit; }
 @media (max-width: 600px) {
   .table .shedding-board { top: max(190px, calc(var(--score-bottom, 0px) + 10px)); }
 }
+
+/* Trix board always fits with no scrolling; covered cards show rank + suit in one compact strip. */
+.table .shedding-board { overflow: hidden; width: calc(100% - 24px); }
+.shed-card .card.lg .corner.tl { flex-direction: row; gap: 1px; align-items: baseline; }
+.shed-card .card.lg .corner .suit { font-size: clamp(9px, calc(var(--card-w) * 0.24), 28px); margin-top: 0; }
+.shedding-board.is-grid { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; align-content: center; gap: 10px; }
+.shedding-board.is-grid .shed-col { flex-direction: row; direction: ltr; }
+.shedding-board.is-grid .shed-card .card.lg .corner.br { display: none; }
+/* Grid rows: corner stays stacked (rank over suit) so "10" reads clearly; each row reserves a full run. */
+.shedding-board.is-grid .shed-card .card.lg .corner.tl { flex-direction: column; left: 3px; gap: 0; align-items: center; }
+.shedding-board.is-grid .shed-card .card.lg .corner .rank { letter-spacing: -1.5px; font-size: calc(var(--card-w) * 0.27); }
+.shedding-board.is-grid .shed-col { width: calc(var(--card-w) + 12 * var(--shed-step)); }
+.shedding-board.is-grid .shed-col:nth-child(odd) { justify-content: flex-end; }
+
+.shedding-board.is-stack { grid-template-columns: max-content; gap: 0; align-content: start; }
+.shedding-board.is-stack .shed-col { justify-content: flex-start !important; }
+.shedding-board.is-stack .shed-col + .shed-col { margin-top: calc(var(--shed-row-step) - var(--card-h)); }
+.shedding-board.is-stack .shed-empty { place-items: start; padding: 2px 6px; font-size: calc(var(--card-w) * 0.3); line-height: 1; }
