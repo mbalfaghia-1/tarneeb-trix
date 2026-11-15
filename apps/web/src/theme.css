@@ -1237,3 +1237,10 @@ button { font-family: inherit; }
   .hand-card.is-playable .card { transform: translateY(-6px); }
   button { touch-action: manipulation; }
 }
+
+/* Landscape Trix: tuck the player's seat into the bottom-left corner so the
+   tableau gets that vertical band and its cards stay large. */
+@media (orientation: landscape) and (min-height: 480px) {
+  .table:has(.shedding-board) .seat-bottom { left: clamp(10px, 2vw, 24px); transform: none; bottom: calc(clamp(10px, 2vh, 20px) + env(safe-area-inset-bottom, 0px)); }
+  .table:has(.shedding-board) .shedding-board { bottom: calc(var(--card-lg-h) + clamp(24px, 4vh, 44px) + 6px + env(safe-area-inset-bottom, 0px)); }
+}

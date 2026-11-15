@@ -53,15 +53,14 @@ export function SheddingBoard({ state }: { state: TrixState }) {
       const steps = longest - 1;
       // Fit a complete run, keeping each exposed rank legible. Only very
       // short phone landscapes need the scroll fallback at the 36px floor.
-      const fit = Math.min(
-        (height - 6 * steps) / (1.4 + 0.26 * steps),
-        (height - 16 * steps) / 1.4,
-      );
-      const width = Math.max(36, Math.min(110, fit, (board.clientWidth - 36) / 4));
+      // Step scales gently with card size, so long runs keep cards large
+      // instead of shrinking with every card added.
+      const fit = (height - 4 * steps) / (1.4 + 0.2 * steps);
+      const width = Math.max(44, Math.min(110, fit, (board.clientWidth - 36) / 4));
       setSize({
         '--card-w': `${width}px`,
         '--card-h': `${width * 1.4}px`,
-        '--shed-step': `${Math.max(16, width * 0.26 + 6)}px`,
+        '--shed-step': `${Math.max(14, width * 0.2 + 4)}px`,
       } as CSSProperties);
     };
     measure();
