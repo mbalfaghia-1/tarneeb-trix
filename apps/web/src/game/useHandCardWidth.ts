@@ -10,6 +10,10 @@ function clamp(lo: number, v: number, hi: number): number {
 /** Mirrors the --card-w formula in theme.css, so a hand that doesn't need
  *  shrinking still matches the rest of the table's card size. */
 function tableCardWidth(vw: number, vh: number): number {
+  if (vw > vh && vh <= 600) {
+    const tableHeight = document.querySelector('.table')?.clientHeight ?? vh;
+    return clamp(42, 0.15 * tableHeight, 72);
+  }
   return clamp(42, Math.min(0.13 * vw, 0.14 * vh), CEILING);
 }
 

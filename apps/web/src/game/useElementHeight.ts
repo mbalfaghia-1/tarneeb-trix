@@ -12,8 +12,10 @@ export function useElementHeight<T extends HTMLElement>(fallback: number): [RefO
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const h = entries[0]?.contentRect.height;
+    const ro = new ResizeObserver(() => {
+      // Seats include padding and borders; reserving content height alone
+      // lets the lowest played card disappear behind the nameplate.
+      const h = el.getBoundingClientRect().height;
       if (h) setHeight(h);
     });
     ro.observe(el);
