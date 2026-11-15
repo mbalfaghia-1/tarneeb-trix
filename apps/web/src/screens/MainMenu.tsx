@@ -33,11 +33,16 @@ export function MainMenu({
   };
   return (
     <main className="menu">
+      <header className="menu-hero">
+        <div className="menu-hero-crown" aria-hidden="true">♛</div>
+        <h2 className="menu-hero-title">Tarneeb &amp; Trix</h2>
+        <div className="menu-hero-sub">طرنيب · تركس</div>
+      </header>
       <button type="button" className="online-banner" onClick={onOnline}>
-        🌐 {t('playOnline')}
+        <span className="banner-icon">🌐</span> {t('playOnline')}
       </button>
       <button type="button" className="online-banner rankings-banner" onClick={onRankings}>
-        🏆 {t('rankings')}
+        <span className="banner-icon">🏆</span> {t('rankings')}
       </button>
 
       {auth.status === 'signedIn' && auth.account && (
@@ -72,17 +77,17 @@ export function MainMenu({
 
       <div className="menu-cards">
         <button type="button" className="menu-card tarneeb" onClick={() => onPick('tarneeb')}>
-          <span className="menu-emoji">♠</span>
+          <img className="menu-art" src="/art/tarneeb.webp" alt="" width={768} height={576} />
           <span className="menu-name">{t('tarneeb')}</span>
           {recLabel('tarneeb') && <span className="menu-record">{recLabel('tarneeb')}</span>}
         </button>
         <button type="button" className="menu-card trix" onClick={() => onPick('trix')}>
-          <span className="menu-emoji">👑</span>
+          <img className="menu-art" src="/art/trix.webp" alt="" width={768} height={576} />
           <span className="menu-name">{t('trixName')}</span>
           {recLabel('trix') && <span className="menu-record">{recLabel('trix')}</span>}
         </button>
         <button type="button" className="menu-card complex" onClick={() => onPick('trixComplex')}>
-          <span className="menu-emoji">☠</span>
+          <img className="menu-art" src="/art/complex.webp" alt="" width={768} height={576} />
           <span className="menu-name">{t('trixComplex')}</span>
           {recLabel('trixComplex') && <span className="menu-record">{recLabel('trixComplex')}</span>}
         </button>

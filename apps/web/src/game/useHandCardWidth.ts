@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const FLOOR = 46;
+const FLOOR = 28;
 const CEILING = 130;
 
 function clamp(lo: number, v: number, hi: number): number {
@@ -10,7 +10,7 @@ function clamp(lo: number, v: number, hi: number): number {
 /** Mirrors the --card-w formula in theme.css, so a hand that doesn't need
  *  shrinking still matches the rest of the table's card size. */
 function tableCardWidth(vw: number, vh: number): number {
-  return clamp(FLOOR, Math.min(0.13 * vw, 0.16 * vh), CEILING);
+  return clamp(42, Math.min(0.13 * vw, 0.14 * vh), CEILING);
 }
 
 /** The largest card width that still guarantees the whole fanned-out hand (cards
