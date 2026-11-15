@@ -285,8 +285,19 @@ function pickAvoidanceCard(state: TrixState): Card {
       // fall through to ducking below rather than self-catching a penalty.
     }
 
+    // Duck under: shed a penalty card here if we're holding one and it's a legal
+    // loser — the current (non-us) winner is already locked in, so dumping it now
+    // lands the penalty on THEM instead of us (and if it's one we doubled, that's
+    // a straight reward rather than just dodging a loss). Highest-ranked loser is
+    // only the right fallback once no penalty card is available to unload: a plain
+    // king naturally outranks a queen, but reported live, that let a doubled queen
+    // sit in hand untouched purely because a non-penalty king happened to be bigger
+    // — exactly backwards, since the queen was the one worth getting rid of.
     const losers = legal.filter((c) => c.rank < winTop);
-    if (losers.length > 0) return highest(losers); // duck under, shedding our highest loser (a penalty here lands on the current winner — good)
+    if (losers.length > 0) {
+      const penaltyLosers = losers.filter((c) => isPenaltyCard(c, contract));
+      return penaltyLosers.length > 0 ? highest(penaltyLosers) : highest(losers);
+    }
 
     // Forced to top: every legal card beats the current winner, so we WILL win this
     // trick. Never take it by playing a penalty into our own trick (that catches our

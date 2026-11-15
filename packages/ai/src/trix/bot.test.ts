@@ -609,6 +609,27 @@ describe('trix partnership coordination', () => {
     expect(chosen(s).suit).toBe('H');
   });
 
+  it('ducks with its OWN doubled Q♠ rather than a higher plain K♠ (Complex)', () => {
+    // Complex; we (seat 0) doubled the Q♠ and also hold K♠. An Ace of spades has
+    // already been played this trick (by someone else), so we cannot win it either
+    // way — but dumping the doubled queen onto their locked-in win turns our risk
+    // into a reward (caught by another seat), while the plain king is not a penalty
+    // card at all and gains us nothing by being shed here. Reported live: the bot
+    // played K♠ instead, keeping the far more dangerous doubled queen in hand simply
+    // because 13 > 12 — exactly backwards.
+    const s = trixPlay(
+      'complex',
+      [C(13, 'S'), C(12, 'S')],
+      [
+        [1, C(4, 'S')],
+        [2, C(2, 'S')],
+        [3, C(14, 'S')],
+      ],
+      { doubled: [{ card: C(12, 'S'), by: 0 }] },
+    );
+    expect(chosen(s)).toEqual(C(12, 'S'));
+  });
+
   it('sheds the A♦ when an opponent doubled the Q♦ and a diamond is led', () => {
     // Queens; the leader (seat 3) doubled the Q♦. A diamond is led and we hold A♦/2♦.
     // Win the (queen-free, free) trick with the A♦ so we are not left holding it to
