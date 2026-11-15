@@ -10,6 +10,7 @@ import {
 import { turnName } from '../../game/labels';
 import { CONTRACT_ICON } from '../../game/trixLabels';
 import { useElementHeight } from '../../game/useElementHeight';
+import { useScoreboardClearance } from '../../game/useScoreboardClearance';
 import type { T } from '../../i18n';
 import { LastTrick } from '../LastTrick';
 import { TrixScoreboard } from './TrixScoreboard';
@@ -67,6 +68,7 @@ export function TrixBoard({
   // contract), which made the earlier fixed top offset too small — same collision
   // class as the bottom seat, just the other side of the trick area.
   const [seatTopRef, seatTopH] = useElementHeight<HTMLDivElement>(70);
+  const tableRef = useScoreboardClearance<HTMLElement>();
 
   const humanContract = awaitingHuman && state.phase === 'contract-select';
   const humanDoubling = awaitingHuman && state.phase === 'doubling';
@@ -80,6 +82,7 @@ export function TrixBoard({
 
   return (
     <main
+      ref={tableRef}
       className="table"
       style={{ '--seat-bottom-h': `${seatBottomH}px`, '--seat-top-h': `${seatTopH}px` } as CSSProperties}
     >

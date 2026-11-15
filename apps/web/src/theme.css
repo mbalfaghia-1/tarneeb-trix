@@ -1241,7 +1241,61 @@ button { font-family: inherit; }
 
 /* Landscape Trix: tuck the player's seat into the bottom-left corner so the
    tableau gets that vertical band and its cards stay large. */
-@media (orientation: landscape) and (min-height: 480px) {
+@media (orientation: landscape) {
   .table:has(.shedding-board) .seat-bottom { left: clamp(10px, 2vw, 24px); transform: none; bottom: calc(clamp(10px, 2vh, 20px) + env(safe-area-inset-bottom, 0px)); }
   .table:has(.shedding-board) .shedding-board { bottom: calc(var(--card-lg-h) + clamp(24px, 4vh, 44px) + 6px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Keep the left player clear of the scoreboard on every screen (the seat's
+   centre sits at least half its own height below the scoreboard's bottom),
+   and keep the right player level with it so the table stays symmetrical. */
+.table .seat-left, .table .seat-right { top: max(45%, calc(var(--score-bottom, 0px) + 10px + var(--seat-left-h, 0px) / 2)); }
+@media (orientation: landscape) and (max-height: 600px) {
+  .table .seat-left, .table .seat-right { top: max(66%, calc(var(--score-bottom, 0px) + 8px + var(--seat-left-h, 0px) / 2)); }
+}
+
+/* The middle of the table (played cards, Trix columns) never runs under the
+   left/right players: its width leaves room for the wider side seat. */
+.table .trick-area, .table .shedding-board {
+  max-width: calc(100% - 2 * (var(--seat-side-w, 0px) + clamp(6px, 1.5vw, 14px) + 6px));
+}
+
+/* During Trix shedding, finish places and penalties sit beside the top and
+   bottom nameplates instead of under them, so those seats keep one height and
+   the columns between them never resize mid-deal. */
+.table:has(.shedding-board) .seat-top > .trix-finish,
+.table:has(.shedding-board) .seat-top > .trix-penalty,
+.table:has(.shedding-board) .seat-top > .trix-tricks,
+.table:has(.shedding-board) .seat-bottom > .trix-finish,
+.table:has(.shedding-board) .seat-bottom > .trix-penalty,
+.table:has(.shedding-board) .seat-bottom > .trix-tricks { position: absolute; white-space: nowrap; }
+.table:has(.shedding-board) .seat-top > .trix-finish { left: calc(100% + 6px); bottom: 10px; }
+.table:has(.shedding-board) .seat-top > .trix-penalty,
+.table:has(.shedding-board) .seat-top > .trix-tricks { right: calc(100% + 6px); bottom: 10px; }
+.table:has(.shedding-board) .seat-bottom > .trix-finish { left: calc(100% + 6px); top: 10px; }
+.table:has(.shedding-board) .seat-bottom > .trix-penalty,
+.table:has(.shedding-board) .seat-bottom > .trix-tricks { right: calc(100% + 6px); top: 10px; }
+
+/* Narrow portrait Trix columns: slim side seats (name under the avatar) so
+   four readable columns fit between them. */
+@media (orientation: portrait) and (max-width: 600px) {
+  .table:has(.shedding-board) .seat-left .nameplate,
+  .table:has(.shedding-board) .seat-right .nameplate {
+    flex-direction: column; gap: 2px; padding: 4px; border-radius: 14px;
+  }
+  .table:has(.shedding-board) .seat-left .name,
+  .table:has(.shedding-board) .seat-right .name { max-width: 52px; font-size: 11px; }
+}
+
+/* Portrait: the Trix columns span under the scoreboard's column, so they start
+   below the scoreboard's measured bottom edge (it grows with the US/THEM
+   partner rows) as well as below the top seat. */
+@media (orientation: portrait) {
+  .table .shedding-board { top: max(calc(clamp(4px, 1vh, 10px) + var(--seat-top-h, 70px) + var(--ui-gap) + 6px), calc(var(--score-bottom, 0px) + 10px)); }
+}
+@media (orientation: portrait) and (min-width: 601px) and (max-width: 900px) {
+  .table .shedding-board { top: max(230px, calc(var(--seat-top-h, 70px) + 26px), calc(var(--score-bottom, 0px) + 10px)); }
+}
+@media (max-width: 600px) {
+  .table .shedding-board { top: max(190px, calc(var(--score-bottom, 0px) + 10px)); }
 }

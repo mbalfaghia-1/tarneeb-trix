@@ -11,6 +11,7 @@ import {
 } from '@tarneeb/engine';
 import { turnName } from '../game/labels';
 import { useElementHeight } from '../game/useElementHeight';
+import { useScoreboardClearance } from '../game/useScoreboardClearance';
 import type { T } from '../i18n';
 import { SeatView } from './SeatView';
 import { Scoreboard } from './Scoreboard';
@@ -68,6 +69,7 @@ export function TarneebBoard({
   // bottom-seat fix: the trick area must stay clear of the top seat too, whatever
   // it's currently showing (bid bubble, etc).
   const [seatTopRef, seatTopH] = useElementHeight<HTMLDivElement>(70);
+  const tableRef = useScoreboardClearance<HTMLElement>();
 
   const humanBidding = awaitingHuman && state.phase === 'bidding';
   const humanTrump = awaitingHuman && state.phase === 'trump-select';
@@ -76,6 +78,7 @@ export function TarneebBoard({
 
   return (
     <main
+      ref={tableRef}
       className="table"
       style={{ '--seat-bottom-h': `${seatBottomH}px`, '--seat-top-h': `${seatTopH}px` } as CSSProperties}
     >
