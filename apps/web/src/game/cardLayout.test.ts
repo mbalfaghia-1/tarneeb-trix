@@ -1,5 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { handLayout, tableauLayout, stripFor } from './cardLayout';
+import { handLayout, tableauLayout, stripFor, tableauLead } from './cardLayout';
+
+describe('Jack anchor for empty and played suits', () => {
+  it('places every empty suit at rank 11, three slots below the Ace in columns', () => {
+    expect(tableauLead(undefined, false)).toBe(3);
+    for (let high = 11; high <= 14; high++) {
+      expect(tableauLead(high, false) + high - 11).toBe(3);
+    }
+  });
+  it('places every empty suit at rank 11, nine slots right of rank 2 in sideways rows', () => {
+    expect(tableauLead(undefined, true)).toBe(9);
+    for (let low = 2; low <= 11; low++) {
+      expect(tableauLead(low, true) + 11 - low).toBe(9);
+    }
+  });
+});
 
 describe('fixed card layout throughout play', () => {
   it('keeps hand card size and overlap identical from thirteen cards down to one', () => {

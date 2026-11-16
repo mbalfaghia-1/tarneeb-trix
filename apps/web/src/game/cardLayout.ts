@@ -15,6 +15,11 @@ export const stripFor = (w: number) => w * 0.3 + 4;
 
 export type TableauMode = 'columns' | 'grid' | 'stack';
 
+/** Empty suits reserve the Jack's rank slot exactly like a played Jack. */
+export function tableauLead(firstRank: number = 11, sideways: boolean) {
+  return sideways ? firstRank - 2 : 14 - firstRank;
+}
+
 /**
  * Tableau cards and their stacking step are sized for a full thirteen-rank run
  * before the first card is played, so nothing resizes during play. The board

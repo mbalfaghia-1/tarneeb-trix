@@ -1,7 +1,7 @@
 import { useRef, useLayoutEffect, useState, type CSSProperties } from 'react';
 import { SUIT_SYMBOL, SUIT_IS_RED, type Card, type Rank, type Suit, type TrixState } from '@tarneeb/engine';
 import { CardView } from '../CardView';
-import { tableauLayout } from '../../game/cardLayout';
+import { tableauLayout, tableauLead } from '../../game/cardLayout';
 
 const COL_SUITS: readonly Suit[] = ['S', 'H', 'C', 'D'];
 
@@ -12,23 +12,18 @@ function rangeCards(suit: Suit, low: Rank, high: Rank): Card[] {
 }
 
 function ShedCol({ cards, suit, grid }: { cards: Card[]; suit: Suit; grid: boolean }) {
-  if (cards.length === 0) {
-    return (
-      <div className="shed-col">
-        <div className={`shed-empty ${SUIT_IS_RED[suit] ? 'red' : ''}`}>
-          {SUIT_SYMBOL[suit]}
-        </div>
-      </div>
-    );
-  }
-
   // Fixed slot per rank: the Jack never moves; lower cards grow one way and
   // higher cards the other, inside space already reserved for all 13 ranks.
-  const lead = grid ? cards[0]!.rank - 2 : 14 - cards[0]!.rank;
+  const lead = tableauLead(cards[0]?.rank, grid);
   return (
     <div className="shed-col">
       {lead > 0 && (
         <div className="shed-lead" aria-hidden="true" style={grid ? { width: `calc(${lead} * var(--shed-step))`, flexShrink: 0 } : { height: `calc(${lead} * var(--shed-step))`, flexShrink: 0 }} />
+      )}
+      {cards.length === 0 && (
+        <div className={`shed-empty ${SUIT_IS_RED[suit] ? 'red' : ''}`} aria-label={`Unplayed Jack ${SUIT_SYMBOL[suit]}`}>
+          {SUIT_SYMBOL[suit]}
+        </div>
       )}
       {cards.map((card, i) => (
         <div

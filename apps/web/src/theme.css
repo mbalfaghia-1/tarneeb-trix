@@ -956,6 +956,7 @@ html, body, #root {
 .shed-col { display: flex; flex-direction: column; align-items: center; }
 .shed-col > .shed-card:first-child { margin-top: 0 !important; }
 .shed-empty {
+  flex-shrink: 0;
   width: var(--card-w, clamp(80px, 8.5vw, 130px));
   height: var(--card-h, clamp(114px, 12.1vw, 186px));
   border: 2px dashed var(--border); border-radius: 8px;
