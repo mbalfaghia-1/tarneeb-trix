@@ -914,16 +914,38 @@ html, body, #root {
   color: #d94; /* amber for negative running score */
 }
 
-/* In landscape, the top/bottom seats' live tricks/penalty tally sits directly
-   in the band between the seat and the middle trick/shedding area — hiding it
-   there (requested live, specifically scoped to top/bottom + landscape only)
-   gives that band more room. Left/right and portrait are unaffected: their
-   layout doesn't compete for the same vertical space. */
-@media (orientation: landscape) {
-  .seat-top .trix-tricks, .seat-top .trix-penalty,
-  .seat-bottom .trix-tricks, .seat-bottom .trix-penalty {
-    display: none;
+/* Keep live tallies together, with the top/bottom cluster beside the avatar.
+   A fixed second track keeps the nameplate centred as scores change. */
+.trix-live-tallies { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.trix-live-tallies:empty { display: none; }
+.table .trix-seat:is(.seat-top, .seat-bottom) {
+  display: grid;
+  grid-template-columns: auto 58px;
+  column-gap: 6px;
+  row-gap: 4px;
+  align-items: center;
+  justify-items: center;
+}
+.table .trix-seat:is(.seat-top, .seat-bottom) > .mini-stack { grid-column: 1; grid-row: 1; }
+.table .trix-seat:is(.seat-top, .seat-bottom) > .nameplate { grid-column: 1; grid-row: 2; }
+.table .trix-seat:is(.seat-top, .seat-bottom) > .trix-live-tallies { grid-column: 2; grid-row: 2; }
+.trix-live-tallies > div { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Short landscape seats all use the same compact arrangement. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .table:not(:has(.shedding-board)) .seat {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 5px;
+    row-gap: 2px;
+    justify-items: center;
   }
+  .table:not(:has(.shedding-board)) .seat .mini-stack { display: none; }
+  .table:not(:has(.shedding-board)) .seat .nameplate { grid-column: 1; grid-row: 1; }
+  .table:not(:has(.shedding-board)) .seat .trix-live-tallies { grid-column: 2; grid-row: 1; }
+  .trix-live-tallies > div { line-height: 16px; }
+  .trix-scoreboard .trix-score-row { line-height: 16px; }
+  .trix-scoreboard .score-target, .trix-scoreboard .trix-contract { line-height: 18px; }
 }
 
 /* Exposed 2s / doubled-card indicator, shown as small corner badges on the
@@ -1261,21 +1283,7 @@ button { font-family: inherit; }
   max-width: calc(100% - 2 * (var(--seat-side-w, 0px) + clamp(6px, 1.5vw, 14px) + 6px));
 }
 
-/* During Trix shedding, finish places and penalties sit beside the top and
-   bottom nameplates instead of under them, so those seats keep one height and
-   the columns between them never resize mid-deal. */
-.table:has(.shedding-board) .seat-top > .trix-finish,
-.table:has(.shedding-board) .seat-top > .trix-penalty,
-.table:has(.shedding-board) .seat-top > .trix-tricks,
-.table:has(.shedding-board) .seat-bottom > .trix-finish,
-.table:has(.shedding-board) .seat-bottom > .trix-penalty,
-.table:has(.shedding-board) .seat-bottom > .trix-tricks { position: absolute; white-space: nowrap; }
-.table:has(.shedding-board) .seat-top > .trix-finish { left: calc(100% + 6px); bottom: 10px; }
-.table:has(.shedding-board) .seat-top > .trix-penalty,
-.table:has(.shedding-board) .seat-top > .trix-tricks { right: calc(100% + 6px); bottom: 10px; }
-.table:has(.shedding-board) .seat-bottom > .trix-finish { left: calc(100% + 6px); top: 10px; }
-.table:has(.shedding-board) .seat-bottom > .trix-penalty,
-.table:has(.shedding-board) .seat-bottom > .trix-tricks { right: calc(100% + 6px); top: 10px; }
+/* Shedding uses the same side-by-side live-tally cluster as trick contracts. */
 
 /* Narrow portrait Trix columns: slim side seats (name under the avatar) so
    four readable columns fit between them. */

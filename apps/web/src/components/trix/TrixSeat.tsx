@@ -76,7 +76,7 @@ export function TrixSeat({
       : [];
 
   return (
-    <div ref={elRef} className={`seat seat-${pos} ${isTurn ? 'turn' : ''} ${justWon ? 'won' : ''}`}>
+    <div ref={elRef} className={`seat trix-seat seat-${pos} ${isTurn ? 'turn' : ''} ${justWon ? 'won' : ''}`}>
       {pos !== 'bottom' && (
         <div className="mini-stack" aria-hidden="true">
           {Array.from({ length: Math.min(cardCount, 4) }).map((_, i) => (
@@ -126,6 +126,7 @@ export function TrixSeat({
           </div>
         )}
       </div>
+      <div className="trix-live-tallies">
       {state.phase === 'playing' && state.contract === 'diamonds' && (
         <div className="trix-tricks">♦ {(state.captured[seat] ?? []).filter((c) => c.suit === 'D').length}</div>
       )}
@@ -139,6 +140,7 @@ export function TrixSeat({
       {state.phase === 'shedding' && finished >= 0 && (
         <div className="trix-finish">#{finished + 1}</div>
       )}
+      </div>
     </div>
   );
 }
